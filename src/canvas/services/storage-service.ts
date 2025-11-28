@@ -3,7 +3,7 @@
  * 提供更可靠的本地存储能力，支持更大规模的数据存储和事务操作。
  */
 import type { IStorageService } from "../schema/interfaces";
-import type { ID, CanvasPersistedState, CanvasDocument } from "../schema/model";
+import type { ID, CanvasPersistedState } from "../schema/model";
 
 // 数据库配置
 const DB_NAME = "canvas-platform-db";
@@ -26,7 +26,7 @@ function openDatabase(): Promise<IDBDatabase> {
       // 检查并创建对象存储空间（如果不存在）
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         // 创建文档对象存储空间，以docID为键
-        const store = db.createObjectStore(STORE_NAME, {
+        db.createObjectStore(STORE_NAME, {
           keyPath: "docID",
         });
 

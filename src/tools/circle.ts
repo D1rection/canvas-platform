@@ -9,7 +9,7 @@ import type { ToolHandler } from "./types";
 export const circleTool: ToolHandler = {
   cursor: "crosshair",
 
-  onCanvasPointerDown: (ctx, point) => {
+  onCanvasPointerDown: (ctx, _point) => {
     // TODO: 后续添加圆形工具
 
     ctx.setTool("select");
