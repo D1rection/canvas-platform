@@ -1,6 +1,8 @@
 import type { IEditorService, IIDService, IStorageService } from "../schema/interfaces";
 import type { CanvasElement, CanvasPersistedState, CanvasRuntimeState, ID, Point, ShapeElement, ShapeStyle, Size, Transform, ViewportState } from "../schema/model";
 
+const documentID = "canvas_document_id";
+
 /**
  * 创建一个基于闭包的画布编辑服务实现。
  * - 内部维护 `CanvasRuntimeState` 核心草稿数据结构
@@ -20,7 +22,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    */
   const initialState: CanvasRuntimeState = {
     document: {
-      id: idService.generateNextID(),
+      id: documentID,
       elements: {},
       rootElementIds: [],
       createdAt: Date.now(),
@@ -175,6 +177,11 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     const style: ShapeStyle = { ...defaultStyle, ..._payload.style };
     const size: Size = _payload.size ?? defaultSize;
 
+    // 计算在当前视口中心位置的场景坐标
+    const viewport = state.viewport;
+    const centerX = viewport.x + (size.width / 2);
+    const centerY = viewport.y + (size.height / 2);
+
     const newElement: ShapeElement = {
       id,
       type: 'shape',
@@ -182,8 +189,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       style,
       size,
       transform: {
-        x: 0,
-        y: 0,
+        x: centerX,
+        y: centerY,
         scaleX: 1,
         scaleY: 1,
         rotation: 0,
