@@ -52,6 +52,52 @@ export interface IStorageService {
 }
 
 /**
+ * 历史记录服务
+ *
+ * 管理 undo/redo 历史栈，与编辑层解耦。
+ * 使用泛型设计，可用于任何状态类型。
+ */
+export interface IHistoryService<T> {
+  /**
+   * 记录一个快照到历史栈。
+   *
+   * @param snapshot 状态快照
+   */
+  push(snapshot: T): void;
+
+  /**
+   * 撤销，返回上一个快照。
+   *
+   * @param current 当前状态（用于 push 到 redo 栈）
+   * @returns 上一个快照，如果没有则返回 null
+   */
+  undo(current: T): T | null;
+
+  /**
+   * 重做，返回下一个快照。
+   *
+   * @param current 当前状态（用于 push 到 undo 栈）
+   * @returns 下一个快照，如果没有则返回 null
+   */
+  redo(current: T): T | null;
+
+  /**
+   * 是否可以撤销。
+   */
+  canUndo(): boolean;
+
+  /**
+   * 是否可以重做。
+   */
+  canRedo(): boolean;
+
+  /**
+   * 清空所有历史记录。
+   */
+  clear(): void;
+}
+
+/**
  * 画布编辑服务
  *
  * 统一管理 `CanvasRuntimeState`，对外暴露修改视口、元素、选区等编辑能力。
@@ -288,4 +334,32 @@ export interface IEditorService {
    * 清空持久化存储并重置为空画布。
    */
   clearPersistedState(): Promise<void>;
+
+  // ─────────────────────────────────────────────────────────────
+  // 撤销/重做
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 撤销上一步操作。
+   *
+   * @returns 是否成功撤销
+   */
+  undo(): boolean;
+
+  /**
+   * 重做上一步撤销的操作。
+   *
+   * @returns 是否成功重做
+   */
+  redo(): boolean;
+
+  /**
+   * 是否可以撤销。
+   */
+  canUndo(): boolean;
+
+  /**
+   * 是否可以重做。
+   */
+  canRedo(): boolean;
 }

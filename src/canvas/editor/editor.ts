@@ -607,6 +607,44 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     }
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // 撤销/重做（待实现）
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 撤销上一步操作
+   * @returns 是否成功撤销
+   */
+  const undo: IEditorService["undo"] = () => {
+    // TODO: 实现撤销逻辑，需要注入 historyService
+    throw new Error("undo not implemented");
+  };
+
+  /**
+   * 重做上一步撤销的操作
+   * @returns 是否成功重做
+   */
+  const redo: IEditorService["redo"] = () => {
+    // TODO: 实现重做逻辑，需要注入 historyService
+    throw new Error("redo not implemented");
+  };
+
+  /**
+   * 是否可以撤销
+   */
+  const canUndo: IEditorService["canUndo"] = () => {
+    // TODO: 实现，需要注入 historyService
+    return false;
+  };
+
+  /**
+   * 是否可以重做
+   */
+  const canRedo: IEditorService["canRedo"] = () => {
+    // TODO: 实现，需要注入 historyService
+    return false;
+  };
+
   return {
     getState,
     subscribe,
@@ -634,5 +672,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     hasPersistedState,
     loadPersistedState,
     clearPersistedState,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   };
 }
