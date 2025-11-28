@@ -3,10 +3,13 @@ import type {
   CanvasPersistedState,
   CanvasRuntimeState,
   ID,
+  ImageFilter,
   Point,
   ShapeKind,
   ShapeStyle,
   Size,
+  TextSpan,
+  TextStyle,
   Transform,
   ViewportState,
 } from "./model";
@@ -157,4 +160,132 @@ export interface IEditorService {
    * 删除当前选区中的所有元素。
    */
   deleteSelection: () => void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 图片相关
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 新增一个图片元素。
+   *
+   * @param payload 图片资源地址、原始尺寸、显示尺寸等配置
+   * @returns 新建元素的 ID
+   */
+  addImage(payload: {
+    /** 图片资源地址（URL / Base64 / Blob URL） */
+    src: string;
+    /** 图片原始尺寸（用于保持宽高比等场景） */
+    naturalSize: Size;
+    /** 可选的显示尺寸，未提供时使用 naturalSize */
+    size?: Size;
+    /** 可选的初始滤镜列表 */
+    filters?: ImageFilter[];
+  }): ID;
+
+  /**
+   * 更新图片元素的滤镜列表。
+   *
+   * @param id 目标图片元素 ID
+   * @param filters 新的滤镜列表
+   */
+  updateImageFilters(id: ID, filters: ImageFilter[]): void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 文本相关
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 新增一个文本元素。
+   *
+   * @param payload 文本内容、样式等配置
+   * @returns 新建元素的 ID
+   */
+  addText(payload: {
+    /** 初始文本内容 */
+    content: string;
+    /** 可选的文本样式覆盖字段 */
+    style?: Partial<TextStyle>;
+    /** 可选的对齐方式，默认 'left' */
+    align?: 'left' | 'center' | 'right';
+  }): ID;
+
+  /**
+   * 更新文本元素的内容（富文本片段）。
+   *
+   * @param id 目标文本元素 ID
+   * @param spans 新的文本片段数组
+   */
+  updateTextContent(id: ID, spans: TextSpan[]): void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 元素缩放
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 缩放单个元素的尺寸。
+   *
+   * @param id 目标元素 ID
+   * @param newSize 新的尺寸
+   * @param anchor 缩放锚点（哪个角固定不动），默认 'nw'（左上角）
+   */
+  resizeElement(id: ID, newSize: Size, anchor?: 'nw' | 'ne' | 'sw' | 'se'): void;
+
+  /**
+   * 缩放当前选中的所有元素。
+   *
+   * @param factor 缩放因子，>1 放大，<1 缩小
+   * @param anchor 缩放锚点
+   */
+  resizeSelection(factor: number, anchor?: 'nw' | 'ne' | 'sw' | 'se'): void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 复制粘贴
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 复制当前选中的元素到内部剪贴板。
+   */
+  copySelection(): void;
+
+  /**
+   * 粘贴剪贴板中的元素到画布。
+   *
+   * @param offset 可选的位置偏移（场景坐标），未提供时自动偏移一定距离
+   * @returns 新粘贴的元素 ID 列表
+   */
+  paste(offset?: Point): ID[];
+
+  // ─────────────────────────────────────────────────────────────
+  // 悬停状态
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 设置当前悬停的元素。
+   *
+   * @param id 悬停元素 ID，传 null 清除悬停状态
+   */
+  setHovered(id: ID | null): void;
+
+  // ─────────────────────────────────────────────────────────────
+  // 持久化
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 检查是否存在持久化数据。
+   *
+   * @returns 是否存在可恢复的数据
+   */
+  hasPersistedState(): Promise<boolean>;
+
+  /**
+   * 从持久化存储加载状态并应用到当前编辑器。
+   *
+   * @returns 是否成功加载
+   */
+  loadPersistedState(): Promise<boolean>;
+
+  /**
+   * 清空持久化存储并重置为空画布。
+   */
+  clearPersistedState(): Promise<void>;
 }

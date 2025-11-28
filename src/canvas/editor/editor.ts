@@ -1,5 +1,5 @@
 import type { IEditorService, IIDService, IStorageService } from "../schema/interfaces";
-import type { CanvasElement, CanvasPersistedState, CanvasRuntimeState, ID, Point, ShapeElement, ShapeStyle, Size, Transform, ViewportState } from "../schema/model";
+import type { CanvasElement, CanvasPersistedState, CanvasRuntimeState, ID, ImageFilter, Point, ShapeElement, ShapeStyle, Size, TextSpan, Transform, ViewportState } from "../schema/model";
 
 const documentID = "canvas_document_id";
 
@@ -427,6 +427,186 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     setState(nextState);
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // 图片相关（待实现）
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 添加图片元素
+   * @param _payload 图片配置
+   * @returns 新添加的元素 ID
+   */
+  const addImage: IEditorService["addImage"] = (_payload) => {
+    // TODO: 实现图片元素添加逻辑
+    throw new Error("addImage not implemented");
+  };
+
+  /**
+   * 更新图片滤镜
+   * @param _id 目标图片元素 ID
+   * @param _filters 新的滤镜列表
+   */
+  const updateImageFilters: IEditorService["updateImageFilters"] = (_id: ID, _filters: ImageFilter[]) => {
+    // TODO: 实现图片滤镜更新逻辑
+    throw new Error("updateImageFilters not implemented");
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 文本相关（待实现）
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 添加文本元素
+   * @param _payload 文本配置
+   * @returns 新添加的元素 ID
+   */
+  const addText: IEditorService["addText"] = (_payload) => {
+    // TODO: 实现文本元素添加逻辑
+    throw new Error("addText not implemented");
+  };
+
+  /**
+   * 更新文本内容
+   * @param _id 目标文本元素 ID
+   * @param _spans 新的文本片段数组
+   */
+  const updateTextContent: IEditorService["updateTextContent"] = (_id: ID, _spans: TextSpan[]) => {
+    // TODO: 实现文本内容更新逻辑
+    throw new Error("updateTextContent not implemented");
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 元素缩放（待实现）
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 缩放单个元素
+   * @param _id 目标元素 ID
+   * @param _newSize 新尺寸
+   * @param _anchor 缩放锚点
+   */
+  const resizeElement: IEditorService["resizeElement"] = (_id: ID, _newSize: Size, _anchor?: 'nw' | 'ne' | 'sw' | 'se') => {
+    // TODO: 实现元素缩放逻辑
+    throw new Error("resizeElement not implemented");
+  };
+
+  /**
+   * 缩放选中元素
+   * @param _factor 缩放因子
+   * @param _anchor 缩放锚点
+   */
+  const resizeSelection: IEditorService["resizeSelection"] = (_factor: number, _anchor?: 'nw' | 'ne' | 'sw' | 'se') => {
+    // TODO: 实现选区缩放逻辑
+    throw new Error("resizeSelection not implemented");
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 复制粘贴（待实现）
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 复制选中元素到剪贴板
+   */
+  const copySelection: IEditorService["copySelection"] = () => {
+    // TODO: 实现复制逻辑
+    throw new Error("copySelection not implemented");
+  };
+
+  /**
+   * 粘贴剪贴板内容
+   * @param _offset 位置偏移
+   * @returns 新粘贴的元素 ID 列表
+   */
+  const paste: IEditorService["paste"] = (_offset?: Point) => {
+    // TODO: 实现粘贴逻辑
+    throw new Error("paste not implemented");
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 悬停状态（待实现）
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 设置悬停元素
+   * @param _id 悬停元素 ID，null 清除悬停
+   */
+  const setHovered: IEditorService["setHovered"] = (_id: ID | null) => {
+    // TODO: 实现悬停状态逻辑
+    throw new Error("setHovered not implemented");
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // 持久化
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 检查是否存在持久化数据
+   * @returns 是否存在可恢复的数据
+   */
+  const hasPersistedState: IEditorService["hasPersistedState"] = async () => {
+    if (!storageService) {
+      return false;
+    }
+    const persisted = await storageService.loadState(documentID);
+    if (!persisted) {
+      return false;
+    }
+    // 检查是否有实际内容（至少有一个元素）
+    return persisted.document.rootElementIds.length > 0;
+  };
+
+  /**
+   * 从持久化存储加载状态
+   * @returns 是否成功加载
+   */
+  const loadPersistedState: IEditorService["loadPersistedState"] = async () => {
+    if (!storageService) {
+      return false;
+    }
+    const persisted = await storageService.loadState(documentID);
+    if (!persisted) {
+      return false;
+    }
+
+    const nextState: CanvasRuntimeState = {
+      document: persisted.document,
+      viewport: persisted.viewport ?? { x: 0, y: 0, scale: 1 },
+      selection: { selectedIds: [] },
+    };
+
+    // 直接赋值
+    state = nextState;
+    notify();
+    return true;
+  };
+
+  /**
+   * 清空持久化存储并重置为空画布
+   */
+  const clearPersistedState: IEditorService["clearPersistedState"] = async () => {
+    // 重置为初始状态
+    state = {
+      document: {
+        id: documentID,
+        elements: {},
+        rootElementIds: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      viewport: { x: 0, y: 0, scale: 1 },
+      selection: { selectedIds: [] },
+    };
+    notify();
+
+    // 保存空状态到存储
+    if (storageService) {
+      await storageService.saveState(documentID, {
+        document: state.document,
+        viewport: state.viewport,
+      });
+    }
+  };
+
   return {
     getState,
     subscribe,
@@ -442,5 +622,17 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     moveSelection,
     resetSelection,
     deleteSelection,
+    addImage,
+    updateImageFilters,
+    addText,
+    updateTextContent,
+    resizeElement,
+    resizeSelection,
+    copySelection,
+    paste,
+    setHovered,
+    hasPersistedState,
+    loadPersistedState,
+    clearPersistedState,
   };
 }
