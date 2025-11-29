@@ -1,0 +1,13 @@
+.canvasRoot {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.canvasViewportWrapper {
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  position: relative;
+}
