@@ -12,12 +12,24 @@ import styles from "./CanvasView.module.css";
 interface CanvasViewProps {
   state: CanvasRuntimeState;
   cursor?: string;
+  /** 画布空白区域鼠标点击 */
   onCanvasPointerDown?: (
     point: Point,
     e: React.PointerEvent<HTMLDivElement>,
   ) => void;
+  /* 元素鼠标点击 */
   onElementPointerDown?: (
     id: ID,
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => void;
+  /** 画布空白区域鼠标移动 */
+  onCanvasPointerMove?: (
+    point: Point,
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => void;
+  /** 画布空白区域鼠标松开 */
+  onCanvasPointerUp?: (
+    point: Point,
     e: React.PointerEvent<HTMLDivElement>,
   ) => void;
 }
@@ -88,6 +100,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
     onCanvasPointerDown({ x: worldX, y: worldY }, e);
   };
+
+  
 
   return (
     <div

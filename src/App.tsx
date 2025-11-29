@@ -18,6 +18,14 @@ function App({ canvasContainer }: AppProps) {
     () => editorService.getState(),
   );
 
+  // 设置工具
+  const setTool = (tool: ToolType) => {
+    if(tool !== currentTool) {
+      editorService.resetSelection();
+    }
+    setCurrentTool(tool);
+  };
+
   // 恢复弹窗状态
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -62,9 +70,9 @@ function App({ canvasContainer }: AppProps) {
   const toolContext: ToolContext = useMemo(
     () => ({
       editor: editorService,
-      setTool: setCurrentTool,
+      setTool: setTool,
     }),
-    [editorService],
+    [editorService, currentTool],
   );
 
   // 画布空白区域点击
@@ -90,7 +98,7 @@ function App({ canvasContainer }: AppProps) {
       {isInitialized && (
         <>
           {/* 工具栏 */}
-          <Toolbar currentTool={currentTool} onChangeTool={setCurrentTool} />
+          <Toolbar currentTool={currentTool} onChangeTool={setTool} />
           {/* 画布容器 */}
           <div className={styles.canvasRoot}>
             <div className={styles.canvasViewportWrapper}>
