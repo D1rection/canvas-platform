@@ -8,7 +8,6 @@ import type { ToolHandler } from "./types";
  */
 export const selectTool: ToolHandler = {
   cursor: "default",
-
   onElementPointerDown: (ctx, id) => {
     ctx.editor.setSelection([id]);
   },

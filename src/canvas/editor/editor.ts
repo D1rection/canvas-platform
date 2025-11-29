@@ -1,5 +1,22 @@
-import type { IEditorService, IIDService, IStorageService } from "../schema/interfaces";
-import type { CanvasElement, CanvasPersistedState, CanvasRuntimeState, ID, ImageFilter, Point, ShapeElement, ShapeStyle, Size, TextSpan, Transform, ViewportState } from "../schema/model";
+import type {
+  IEditorService,
+  IIDService,
+  IStorageService,
+} from "../schema/interfaces";
+import type {
+  CanvasElement,
+  CanvasPersistedState,
+  CanvasRuntimeState,
+  ID,
+  ImageFilter,
+  Point,
+  ShapeElement,
+  ShapeStyle,
+  Size,
+  TextSpan,
+  Transform,
+  ViewportState,
+} from "../schema/model";
 
 const documentID = "canvas_document_id";
 
@@ -54,7 +71,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    */
   const getState: IEditorService["getState"] = () => {
     return state;
-  }
+  };
 
   /**
    * 订阅画布运行时状态
@@ -106,7 +123,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * 设置视口状态
    * @param _viewport 新的视口状态
    */
-  const setViewport: IEditorService["setViewport"] = (_viewport: ViewportState) => {
+  const setViewport: IEditorService["setViewport"] = (
+    _viewport: ViewportState
+  ) => {
     const nextState: CanvasRuntimeState = {
       ...state,
       viewport: _viewport,
@@ -216,12 +235,12 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
 
     // 计算在当前视口中心位置的场景坐标
     const viewport = state.viewport;
-    const centerX = viewport.x + (size.width / 2);
-    const centerY = viewport.y + (size.height / 2);
+    const centerX = viewport.x + size.width / 2;
+    const centerY = viewport.y + size.height / 2;
 
     const newElement: ShapeElement = {
       id,
-      type: 'shape',
+      type: "shape",
       shape,
       style,
       size,
@@ -236,6 +255,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       locked: false,
       parentId: null,
       zIndex: 0,
+      opacity: 1, // 默认不透明
     };
 
     const nextState: CanvasRuntimeState = {
@@ -248,8 +268,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
       selection: {
         // 新添加的元素默认选中
-        selectedIds: [id],  
-      }
+        selectedIds: [id],
+      },
     };
 
     setState(nextState);
@@ -262,10 +282,19 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _id 目标元素 ID
    * @param _patch 需要更新的字段集合
    */
-  const updateElement: IEditorService["updateElement"] = (_id: ID, _patch: Partial<CanvasElement>) => {
+
+  const updateElement: IEditorService["updateElement"] = (
+    _id: ID,
+    _patch: Partial<CanvasElement>
+  ) => {
     const target = state.document.elements[_id];
+
+    // 关键修改：静默处理而不是抛出错误
     if (!target) {
-      throw new Error(`Element with id ${_id} not found`);
+      console.warn(
+        `[SAFE] Element ${_id} not found in document, update skipped`
+      );
+      return; // 静默返回，不抛出错误
     }
 
     const nextElement = {
@@ -293,7 +322,10 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _id 目标元素 ID
    * @param _patch 需要更新的变换字段集合
    */
-  const transformElement: IEditorService["transformElement"] = (_id: ID, _patch: Partial<Transform>) => {
+  const transformElement: IEditorService["transformElement"] = (
+    _id: ID,
+    _patch: Partial<Transform>
+  ) => {
     const target = state.document.elements[_id];
     if (!target) {
       throw new Error(`Element with id ${_id} not found`);
@@ -304,7 +336,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       transform: {
         ...target.transform,
         ..._patch,
-      }
+      },
     } as CanvasElement;
 
     const nextState: CanvasRuntimeState = {
@@ -317,7 +349,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         },
         updatedAt: Date.now(),
       },
-    }
+    };
 
     setState(nextState);
   };
@@ -340,7 +372,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       document: {
         ...state.document,
         elements: restElements,
-        rootElementIds: state.document.rootElementIds.filter((rid) => rid !== _id),
+        rootElementIds: state.document.rootElementIds.filter(
+          (rid) => rid !== _id
+        ),
         updatedAt: Date.now(),
       },
       selection: {
@@ -455,7 +489,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         ...state.document,
         elements: nextElements,
         rootElementIds: state.document.rootElementIds.filter(
-          (rid) => !toDelete.has(rid),
+          (rid) => !toDelete.has(rid)
         ),
         updatedAt: Date.now(),
       },
@@ -487,7 +521,10 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _id 目标图片元素 ID
    * @param _filters 新的滤镜列表
    */
-  const updateImageFilters: IEditorService["updateImageFilters"] = (_id: ID, _filters: ImageFilter[]) => {
+  const updateImageFilters: IEditorService["updateImageFilters"] = (
+    _id: ID,
+    _filters: ImageFilter[]
+  ) => {
     // TODO: 实现图片滤镜更新逻辑
     throw new Error("updateImageFilters not implemented");
   };
@@ -511,7 +548,10 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _id 目标文本元素 ID
    * @param _spans 新的文本片段数组
    */
-  const updateTextContent: IEditorService["updateTextContent"] = (_id: ID, _spans: TextSpan[]) => {
+  const updateTextContent: IEditorService["updateTextContent"] = (
+    _id: ID,
+    _spans: TextSpan[]
+  ) => {
     // TODO: 实现文本内容更新逻辑
     throw new Error("updateTextContent not implemented");
   };
@@ -526,7 +566,11 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _newSize 新尺寸
    * @param _anchor 缩放锚点
    */
-  const resizeElement: IEditorService["resizeElement"] = (_id: ID, _newSize: Size, _anchor?: 'nw' | 'ne' | 'sw' | 'se') => {
+  const resizeElement: IEditorService["resizeElement"] = (
+    _id: ID,
+    _newSize: Size,
+    _anchor?: "nw" | "ne" | "sw" | "se"
+  ) => {
     // TODO: 实现元素缩放逻辑
     throw new Error("resizeElement not implemented");
   };
@@ -536,7 +580,10 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _factor 缩放因子
    * @param _anchor 缩放锚点
    */
-  const resizeSelection: IEditorService["resizeSelection"] = (_factor: number, _anchor?: 'nw' | 'ne' | 'sw' | 'se') => {
+  const resizeSelection: IEditorService["resizeSelection"] = (
+    _factor: number,
+    _anchor?: "nw" | "ne" | "sw" | "se"
+  ) => {
     // TODO: 实现选区缩放逻辑
     throw new Error("resizeSelection not implemented");
   };
@@ -624,29 +671,30 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   /**
    * 清空持久化存储并重置为空画布
    */
-  const clearPersistedState: IEditorService["clearPersistedState"] = async () => {
-    // 重置为初始状态
-    state = {
-      document: {
-        id: documentID,
-        elements: {},
-        rootElementIds: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      },
-      viewport: { x: 0, y: 0, scale: 1 },
-      selection: { selectedIds: [] },
-    };
-    notify();
+  const clearPersistedState: IEditorService["clearPersistedState"] =
+    async () => {
+      // 重置为初始状态
+      state = {
+        document: {
+          id: documentID,
+          elements: {},
+          rootElementIds: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
+        viewport: { x: 0, y: 0, scale: 1 },
+        selection: { selectedIds: [] },
+      };
+      notify();
 
-    // 保存空状态到存储
-    if (storageService) {
-      await storageService.saveState(documentID, {
-        document: state.document,
-        viewport: state.viewport,
-      });
-    }
-  };
+      // 保存空状态到存储
+      if (storageService) {
+        await storageService.saveState(documentID, {
+          document: state.document,
+          viewport: state.viewport,
+        });
+      }
+    };
 
   // ─────────────────────────────────────────────────────────────
   // 撤销/重做（待实现）

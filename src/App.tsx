@@ -155,6 +155,13 @@ function App({ canvasContainer }: AppProps) {
                 onCanvasPointerUp={handleCanvasPointerUp}
                 onElementPointerDown={handleElementPointerDown}
                 onWheel={handleWheel}
+                onUpdateElement={(id, updates) => {
+                    try {
+                        editorService.updateElement(id, updates);
+                    } catch (error) {
+                        console.error('Failed to update element in App:', error);
+                    }
+                }}
               />
             </div>
           </div>

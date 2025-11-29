@@ -5,8 +5,10 @@ import type {
   Point,
   ShapeElement,
   ViewportState,
+  CanvasElement,
 } from "../../canvas/schema/model";
 import { RectShape, SelectionOverlay } from "../../canvas/renderer";
+import ElementToolbar from "../../canvas/renderer/overlay/ElementToolbar";
 import styles from "./CanvasView.module.css";
 
 interface CanvasViewProps {
@@ -14,33 +16,32 @@ interface CanvasViewProps {
   cursor?: string;
   /** 注册画布平移预览回调 */
   onRegisterPanPreview?: (
-    apply: (offset: { dx: number; dy: number } | null) => void,
+    apply: (offset: { dx: number; dy: number } | null) => void
   ) => void;
   /** 画布空白区域鼠标点击 */
   onCanvasPointerDown?: (
     point: Point,
-    e: React.PointerEvent<HTMLDivElement>,
+    e: React.PointerEvent<HTMLDivElement>
   ) => void;
   /* 元素鼠标点击 */
   onElementPointerDown?: (
     id: ID,
-    e: React.PointerEvent<HTMLDivElement>,
+    e: React.PointerEvent<HTMLDivElement>
   ) => void;
   /** 画布空白区域鼠标移动 */
   onCanvasPointerMove?: (
     point: Point,
-    e: React.PointerEvent<HTMLDivElement>,
+    e: React.PointerEvent<HTMLDivElement>
   ) => void;
   /** 画布空白区域鼠标松开 */
   onCanvasPointerUp?: (
     point: Point,
-    e: React.PointerEvent<HTMLDivElement>,
+    e: React.PointerEvent<HTMLDivElement>
   ) => void;
+  /** 更新元素回调 */
+  onUpdateElement?: (id: ID, updates: Partial<CanvasElement>) => void;
   /** 画布鼠标滚轮 */
-  onWheel?: (
-    point: Point,
-    e: React.WheelEvent<HTMLDivElement>,
-  ) => void;
+  onWheel?: (point: Point, e: React.WheelEvent<HTMLDivElement>) => void;
 }
 
 /**
@@ -50,6 +51,7 @@ interface CanvasViewProps {
  * - elementsLayer：渲染所有元素（Shape）
  * - overlayLayer：渲染交互反馈（选中框、悬停、拖拽预览等）
  */
+
 export const CanvasView: React.FC<CanvasViewProps> = ({
   state,
   cursor,
@@ -58,24 +60,82 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   onCanvasPointerMove,
   onCanvasPointerUp,
   onElementPointerDown,
+  onUpdateElement,
   onWheel,
 }) => {
+  // 从state中解构变量，确保在使用前声明
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
+
+  // 方案D：增强的状态同步监控
+  useEffect(() => {
+    console.log("=== State Sync Monitor ===");
+    console.log(
+      "Document elements count:",
+      Object.keys(document.elements).length
+    );
+    console.log("Selected IDs:", selection.selectedIds);
+
+    // 检查每个选中的元素是否仍然存在
+    selection.selectedIds.forEach((selectedId) => {
+      const elementExists = !!document.elements[selectedId];
+      console.log(`Element ${selectedId} exists:`, elementExists);
+
+      if (!elementExists) {
+        console.error(
+          `CRITICAL: Selected element ${selectedId} not found in document!`
+        );
+        // 这里可以记录错误或触发恢复逻辑
+      }
+    });
+  }, [document.elements, selection.selectedIds]);
 
   // 是否正在拖拽
   const [isDragging, setIsDragging] = useState(false);
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = useRef<HTMLDivElement | null>(null);
 
+  // 增强的 handleUpdateElement 带有完整防护
+  const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
+    console.log("=== handleUpdateElement with Full Protection ===");
+    console.log("Target element ID:", id);
+    console.log("Available elements:", Object.keys(document.elements));
+
+    // 多层防护检查
+    if (!id) {
+      console.error("Update attempted with null/undefined ID");
+      return;
+    }
+
+    if (!document.elements[id]) {
+      console.error(`Element ${id} not found in document.elements`);
+      console.log("Current document state:", document);
+      return;
+    }
+
+    try {
+      // 使用回调通知父组件更新元素
+      if (onUpdateElement) {
+        onUpdateElement(id, updates);
+        console.log("Update notification sent to parent component");
+      } else {
+        console.warn("onUpdateElement callback not provided");
+      }
+      console.log("Update completed successfully");
+    } catch (error) {
+      console.error("Failed to update element:", error);
+      console.trace();
+    }
+  };
+
   /**
    * 元素上的指针按下处理
    */
   const handleShapePointerDown = (
     id: string,
-    e: React.PointerEvent<HTMLDivElement>,
+    e: React.PointerEvent<HTMLDivElement>
   ) => {
-    if(!isDragging && cursor === "grab") setIsDragging(true);
+    if (!isDragging && cursor === "grab") setIsDragging(true);
     onElementPointerDown?.(id, e);
     e.stopPropagation();
   };
@@ -102,7 +162,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   /**
    * 屏幕坐标转场景坐标
    */
-  const screenToWorld = (e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>): Point => {
+  const screenToWorld = (
+    e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>
+  ): Point => {
     const rect = e.currentTarget.getBoundingClientRect();
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
@@ -116,16 +178,31 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
    * 画布空白区域的指针按下处理
    */
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if(!isDragging && cursor === "grab") setIsDragging(true);
+    // 检查点击目标是否是工具栏或元素工具栏,如果是,则阻止事件冒泡
+    const target = e.target as HTMLElement;
+    const isToolbarClick =
+      target.closest(".element-toolbar") !== null ||
+      target.closest("[data-toolbar]") !== null ||
+      target.classList.contains("element-toolbar") ||
+      target.hasAttribute("data-toolbar");
+
+    if (isToolbarClick) {
+      e.stopPropagation();
+      return;
+    }
+
+    if (!onCanvasPointerDown) return;
+
+    if (!isDragging && cursor === "grab") setIsDragging(true);
     const point = screenToWorld(e);
-    onCanvasPointerDown?.(point, e);
+    onCanvasPointerDown(point, e);
   };
 
   /**
    * 画布指针移动
    */
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if(!onCanvasPointerMove) return;
+    if (!onCanvasPointerMove) return;
     const point = screenToWorld(e);
     onCanvasPointerMove(point, e);
   };
@@ -134,14 +211,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
    * 画布指针松开
    */
   const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if(!onCanvasPointerUp) return;
-    if(isDragging) setIsDragging(false);
+    if (!onCanvasPointerUp) return;
+    if (isDragging) setIsDragging(false);
     const point = screenToWorld(e);
     onCanvasPointerUp(point, e);
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if(!onWheel) return;
+    if (!onWheel) return;
     const point = screenToWorld(e);
     onWheel(point, e);
   };
@@ -150,7 +227,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
    * 画布指针样式
    */
   const canvasCursor = useMemo(() => {
-    if(!cursor) return "default";
+    if (!cursor) return "default";
     // 拖拽工具
     if (cursor === "grab" && isDragging) {
       return "grabbing";
@@ -176,7 +253,6 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       }
     });
   }, [onRegisterPanPreview]);
-
   return (
     <div
       className={styles.root}
@@ -202,6 +278,16 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           elements={document.elements}
           viewport={viewport}
         />
+
+        {/* 元素工具栏：当且仅当有一个元素被选中时显示 */}
+        {selection.selectedIds.length === 1 && (
+          <ElementToolbar
+            element={document.elements[selection.selectedIds[0]]}
+            viewport={viewport}
+            onUpdateElement={handleUpdateElement}
+          />
+        )}
+
         {/* 后续可在此添加：HoverOverlay / DragPreview / AlignmentGuides 等 */}
       </div>
     </div>

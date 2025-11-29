@@ -42,8 +42,8 @@ export const RectShape: React.FC<RectShapeProps> = ({
         boxSizing: "border-box",
         transform: `rotate(${transform.rotation}deg)`,
         transformOrigin: "top left",
+        opacity: element.opacity ?? 1, // 应用元素透明度，默认为1
       }}
     />
   );
 };
-

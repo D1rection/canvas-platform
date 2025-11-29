@@ -227,6 +227,14 @@ export interface ElementBase {
    * - 在同一父级下用于排序
    */
   zIndex: number;
+  /**
+   * 元素透明度
+   *
+   * - 0 为完全透明
+   * - 1 为完全不透明
+   * - 默认为 1
+   */
+  opacity: number;
 }
 
 /**
