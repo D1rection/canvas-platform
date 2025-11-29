@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import type {
   CanvasRuntimeState,
   ID,
@@ -32,6 +32,11 @@ interface CanvasViewProps {
     point: Point,
     e: React.PointerEvent<HTMLDivElement>,
   ) => void;
+  /** 画布鼠标滚轮 */
+  onWheel?: (
+    point: Point,
+    e: React.WheelEvent<HTMLDivElement>,
+  ) => void;
 }
 
 /**
@@ -45,10 +50,16 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   state,
   cursor,
   onCanvasPointerDown,
+  onCanvasPointerMove,
+  onCanvasPointerUp,
   onElementPointerDown,
+  onWheel,
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
+
+  // 是否正在拖拽
+  const [isDragging, setIsDragging] = useState(false);
 
   /**
    * 元素上的指针按下处理
@@ -57,6 +68,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     id: string,
     e: React.PointerEvent<HTMLDivElement>,
   ) => {
+    if(!isDragging && cursor === "grab") setIsDragging(true);
     onElementPointerDown?.(id, e);
     e.stopPropagation();
   };
@@ -81,33 +93,72 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   /**
+   * 屏幕坐标转场景坐标
+   */
+  const screenToWorld = (e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>): Point => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+    return {
+      x: viewport.x + screenX / scale,
+      y: viewport.y + screenY / scale,
+    };
+  };
+
+  /**
    * 画布空白区域的指针按下处理
    */
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!onCanvasPointerDown) return;
-
-    // 1. 获取画布容器在屏幕上的位置
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    // 2. 计算点击位置相对于画布容器的屏幕坐标
-    const screenX = e.clientX - rect.left;
-    const screenY = e.clientY - rect.top;
-
-    // 3. 将屏幕坐标转换为场景坐标（世界坐标）
-    //    公式：worldPos = viewportPos + screenPos / scale
-    const worldX = viewport.x + screenX / scale;
-    const worldY = viewport.y + screenY / scale;
-
-    onCanvasPointerDown({ x: worldX, y: worldY }, e);
+    if(!isDragging && cursor === "grab") setIsDragging(true);
+    const point = screenToWorld(e);
+    onCanvasPointerDown?.(point, e);
   };
 
-  
+  /**
+   * 画布指针移动
+   */
+  const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if(!onCanvasPointerMove) return;
+    const point = screenToWorld(e);
+    onCanvasPointerMove(point, e);
+  };
+
+  /**
+   * 画布指针松开
+   */
+  const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if(!onCanvasPointerUp) return;
+    if(isDragging) setIsDragging(false);
+    const point = screenToWorld(e);
+    onCanvasPointerUp(point, e);
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if(!onWheel) return;
+    const point = screenToWorld(e);
+    onWheel(point, e);
+  };
+
+  /**
+   * 画布指针样式
+   */
+  const canvasCursor = useMemo(() => {
+    if(!cursor) return "default";
+    // 拖拽工具
+    if (cursor === "grab" && isDragging) {
+      return "grabbing";
+    }
+    return cursor;
+  }, [cursor, isDragging]);
 
   return (
     <div
       className={styles.root}
-      style={{ cursor: cursor ?? "default" }}
+      style={{ cursor: canvasCursor }}
       onPointerDown={handleCanvasPointerDown}
+      onPointerMove={handleCanvasPointerMove}
+      onPointerUp={handleCanvasPointerUp}
+      onWheel={handleWheel}
     >
       {/* 元素层：渲染所有元素 */}
       <div className={styles.elementsLayer}>

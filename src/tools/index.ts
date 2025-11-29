@@ -5,6 +5,7 @@ import { rectTool } from "./rect";
 import { circleTool } from "./circle";
 import { imageTool } from "./image";
 import { textTool } from "./text";
+import { triangleTool } from "./triangle";
 
 export type { ToolHandler, ToolContext } from "./types";
 
@@ -16,6 +17,7 @@ export const toolRegistry: Record<string, ToolHandler> = {
   pan: panTool,
   rect: rectTool,
   circle: circleTool,
+  triangle: triangleTool,
   image: imageTool,
   text: textTool,
 };

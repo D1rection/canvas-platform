@@ -14,8 +14,8 @@ interface AppProps {
 function App({ canvasContainer }: AppProps) {
   const { editorService } = canvasContainer;
   const [currentTool, setCurrentTool] = useState<ToolType>("select");
-  const [canvasState, setCanvasState] = useState<CanvasRuntimeState>(
-    () => editorService.getState(),
+  const [canvasState, setCanvasState] = useState<CanvasRuntimeState>(() =>
+    editorService.getState(),
   );
 
   // 设置工具
@@ -76,13 +76,44 @@ function App({ canvasContainer }: AppProps) {
   );
 
   // 画布空白区域点击
-  const handleCanvasPointerDown = (point: Point) => {
-    toolHandler.onCanvasPointerDown?.(toolContext, point);
+  const handleCanvasPointerDown = (
+    point: Point,
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    toolHandler.onCanvasPointerDown?.(toolContext, point, e.nativeEvent);
   };
 
-  // 元素点击
-  const handleElementPointerDown = (id: ID) => {
-    toolHandler.onElementPointerDown?.(toolContext, id);
+  // 画布鼠标移动
+  const handleCanvasPointerMove = (
+    point: Point,
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    toolHandler.onCanvasPointerMove?.(toolContext, point, e.nativeEvent);
+  };
+
+  // 画布鼠标松开
+  const handleCanvasPointerUp = (
+    point: Point,
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    toolHandler.onCanvasPointerUp?.(toolContext, point, e.nativeEvent);
+  };
+
+  // 元素鼠标点击
+  const handleElementPointerDown = (
+    id: ID,
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    toolHandler.onElementPointerDown?.(toolContext, id, e.nativeEvent);
+  };
+
+  // 鼠标滚轮
+  const handleWheel = (
+    point: Point,
+    e: React.WheelEvent<HTMLDivElement>
+  ) => {
+    e.preventDefault();
+    if(e.ctrlKey || e.metaKey) editorService.zoomAt(point, e.deltaY < 0 ? 0.1 : -0.1);
   };
 
   return (
@@ -106,7 +137,10 @@ function App({ canvasContainer }: AppProps) {
                 state={canvasState}
                 cursor={toolHandler.cursor}
                 onCanvasPointerDown={handleCanvasPointerDown}
+                onCanvasPointerMove={handleCanvasPointerMove}
+                onCanvasPointerUp={handleCanvasPointerUp}
                 onElementPointerDown={handleElementPointerDown}
+                onWheel={handleWheel}
               />
             </div>
           </div>

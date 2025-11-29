@@ -6,6 +6,7 @@ import {
   LuCircle,
   LuImage,
   LuType,
+  LuTriangle,
 } from "react-icons/lu";
 import styles from "./Toolbar.module.css";
 
@@ -14,6 +15,7 @@ export type ToolType =
   | "pan"
   | "rect"
   | "circle"
+  | "triangle"
   | "image"
   | "text";
 
@@ -28,6 +30,7 @@ const TOOLS: ToolConfig[] = [
   { type: "pan", icon: <LuHand size={20} />, label: "拖动" },
   { type: "rect", icon: <LuSquare size={20} />, label: "矩形" },
   { type: "circle", icon: <LuCircle size={20} />, label: "圆形" },
+  { type: "triangle", icon: <LuTriangle size={20} />, label: "三角形" },
   { type: "image", icon: <LuImage size={20} />, label: "图片" },
   { type: "text", icon: <LuType size={20} />, label: "文本" },
 ];

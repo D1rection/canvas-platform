@@ -142,16 +142,43 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   /**
    * 缩放视口
    * @param _point 缩放的中心点
-   * @param _factor 缩放因子
+   * @param _factor 缩放倍数变化因子
    */
   const zoomAt: IEditorService["zoomAt"] = (_point: Point, _factor: number) => {
+    if (_factor === 0) {
+      return;
+    }
+
+    const viewport = state.viewport;
+    const scale = viewport.scale;
+    const nextScale = scale + _factor;
+
+    const minScale = 0.1;
+    const maxScale = 5;
+    if(nextScale < minScale || nextScale > maxScale) {
+      return;
+    }
+
+    const { x: vx0, y: vy0 } = viewport;
+    const { x: wx, y: wy } = _point;
+
+    // 以场景坐标 _point 为缩放中心，保持该点在视口上的位置不变
+    // 推导公式：
+    //   S = (W - vx0) * scale = (W - vx1) * nextScale
+    //   => vx1 = W - (W - vx0) * (scale / nextScale)
+    const vx1 = wx - (wx - vx0) * (scale / nextScale);
+    const vy1 = wy - (wy - vy0) * (scale / nextScale);
+
     const nextState: CanvasRuntimeState = {
       ...state,
       viewport: {
-        ...state.viewport,
-        scale: state.viewport.scale * _factor,
+        ...viewport,
+        x: vx1,
+        y: vy1,
+        scale: nextScale,
       },
     };
+
     setState(nextState);
   };
 
@@ -166,8 +193,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
 
     /** 默认样式 */
     const defaultStyle: ShapeStyle = {
-      fill: '#000000',
-      strokeColor: '#000000',
+      fill: '#ffffff',
+      strokeColor: '#b5b5b5',
       strokeWidth: 1,
     };
 
