@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CanvasView } from "./components/canvas/CanvasView";
 import { Toolbar, type ToolType } from "./components/toolbar/Toolbar";
 import { RecoveryModal } from "./components/recovery/RecoveryModal";
@@ -17,6 +17,8 @@ function App({ canvasContainer }: AppProps) {
   const [canvasState, setCanvasState] = useState<CanvasRuntimeState>(() =>
     editorService.getState(),
   );
+  // 画布平移预览
+  const panPreviewApplyRef = useRef<((offset: { dx: number; dy: number } | null) => void) | null>(null);
 
   // 设置工具
   const setTool = (tool: ToolType) => {
@@ -71,6 +73,9 @@ function App({ canvasContainer }: AppProps) {
     () => ({
       editor: editorService,
       setTool: setTool,
+      setPanPreview: (offset) => {
+        panPreviewApplyRef.current?.(offset);
+      },
     }),
     [editorService, currentTool],
   );
@@ -144,6 +149,7 @@ function App({ canvasContainer }: AppProps) {
               <CanvasView
                 state={canvasState}
                 cursor={toolHandler.cursor}
+                onRegisterPanPreview={(apply) => { panPreviewApplyRef.current = apply }}
                 onCanvasPointerDown={handleCanvasPointerDown}
                 onCanvasPointerMove={handleCanvasPointerMove}
                 onCanvasPointerUp={handleCanvasPointerUp}

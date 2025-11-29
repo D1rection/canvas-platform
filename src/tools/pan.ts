@@ -13,8 +13,8 @@ let panState: PanState | null = null;
  * 拖动工具（平移画布）
  *
  * - 按下：记录起始 client 坐标和视口
- * - 移动：根据 (clientX/clientY) 与起点的差值计算位移
- * - 松开：清空拖拽状态
+ * - 移动：根据 (clientX/clientY) 与起点的差值更新预览偏移量
+ * - 松开：提交最终视口，清空预览与拖拽状态
  */
 export const panTool: ToolHandler = {
   cursor: "grab",
@@ -50,6 +50,21 @@ export const panTool: ToolHandler = {
     // 仅在左键按下时生效
     if ((ev.buttons & 1) === 0) return;
 
+    const { startClientX, startClientY } = panState;
+    const dx = ev.clientX - startClientX;
+    const dy = ev.clientY - startClientY;
+
+    // 更新画布平移预览
+    ctx.setPanPreview?.({ dx, dy });
+  },
+
+  onCanvasPointerUp: (ctx: ToolContext, _point, ev) => {
+    if (!panState || !ev) {
+      panState = null;
+      ctx.setPanPreview?.(null);
+      return;
+    }
+
     const { startClientX, startClientY, startViewport } = panState;
     const dx = ev.clientX - startClientX;
     const dy = ev.clientY - startClientY;
@@ -62,9 +77,8 @@ export const panTool: ToolHandler = {
     };
 
     ctx.editor.setViewport(nextViewport);
-  },
 
-  onCanvasPointerUp: () => {
+    ctx.setPanPreview?.(null);
     panState = null;
   },
 };

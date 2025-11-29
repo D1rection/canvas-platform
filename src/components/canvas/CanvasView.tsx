@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CanvasRuntimeState,
   ID,
@@ -12,6 +12,10 @@ import styles from "./CanvasView.module.css";
 interface CanvasViewProps {
   state: CanvasRuntimeState;
   cursor?: string;
+  /** 注册画布平移预览回调 */
+  onRegisterPanPreview?: (
+    apply: (offset: { dx: number; dy: number } | null) => void,
+  ) => void;
   /** 画布空白区域鼠标点击 */
   onCanvasPointerDown?: (
     point: Point,
@@ -49,6 +53,7 @@ interface CanvasViewProps {
 export const CanvasView: React.FC<CanvasViewProps> = ({
   state,
   cursor,
+  onRegisterPanPreview,
   onCanvasPointerDown,
   onCanvasPointerMove,
   onCanvasPointerUp,
@@ -60,6 +65,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   // 是否正在拖拽
   const [isDragging, setIsDragging] = useState(false);
+  const elementsLayerRef = useRef<HTMLDivElement | null>(null);
+  const overlayLayerRef = useRef<HTMLDivElement | null>(null);
 
   /**
    * 元素上的指针按下处理
@@ -151,6 +158,25 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     return cursor;
   }, [cursor, isDragging]);
 
+  // 平移预览
+  useEffect(() => {
+    if (!onRegisterPanPreview) return;
+
+    onRegisterPanPreview((offset) => {
+      const transform =
+        offset && (offset.dx !== 0 || offset.dy !== 0)
+          ? `translate(${offset.dx}px, ${offset.dy}px)`
+          : "";
+
+      if (elementsLayerRef.current) {
+        elementsLayerRef.current.style.transform = transform;
+      }
+      if (overlayLayerRef.current) {
+        overlayLayerRef.current.style.transform = transform;
+      }
+    });
+  }, [onRegisterPanPreview]);
+
   return (
     <div
       className={styles.root}
@@ -161,7 +187,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       onWheel={handleWheel}
     >
       {/* 元素层：渲染所有元素 */}
-      <div className={styles.elementsLayer}>
+      <div className={styles.elementsLayer} ref={elementsLayerRef}>
         {document.rootElementIds.map((id) => {
           const el = document.elements[id];
           if (!el || el.type !== "shape" || !el.visible) return null;
@@ -170,7 +196,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       </div>
 
       {/* 覆盖层：渲染选中框等交互反馈 */}
-      <div className={styles.overlayLayer}>
+      <div className={styles.overlayLayer} ref={overlayLayerRef}>
         <SelectionOverlay
           selectedIds={selection.selectedIds}
           elements={document.elements}

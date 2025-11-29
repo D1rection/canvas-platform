@@ -79,15 +79,21 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   /**
    * 更新画布运行时状态
    * @param nextState 新的画布运行时状态
+   * @param options 额外选项
+   *  - persist: 是否写入持久化存储（默认 true）
    */
-  const setState = (nextState: CanvasRuntimeState) => {
+  const setState = (
+    nextState: CanvasRuntimeState,
+    options?: { persist?: boolean },
+  ) => {
     if (nextState === state) {
       return;
     }
     state = nextState;
     notify();
 
-    if (storageService) {
+    const shouldPersist = options?.persist ?? true;
+    if (shouldPersist && storageService) {
       const persisted: CanvasPersistedState = {
         document: state.document,
         viewport: state.viewport,
@@ -105,7 +111,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       ...state,
       viewport: _viewport,
     };
-    setState(nextState);
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**
@@ -121,7 +128,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         y: state.viewport.y + _delta.y,
       },
     };
-    setState(nextState);
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**
@@ -136,7 +144,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         scale: 1,
       },
     };
-    setState(nextState);
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**
@@ -179,7 +188,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
     };
 
-    setState(nextState);
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**
@@ -354,7 +364,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         selectedIds: _ids,
       },
     };
-    setState(nextState);
+
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**
@@ -399,7 +411,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
     };
 
-    setState(nextState);
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**
@@ -413,7 +426,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         selectedIds: [],
       },
     };
-    setState(nextState);
+    // 不触发持久化
+    setState(nextState, { persist: false });
   };
 
   /**

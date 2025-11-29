@@ -48,5 +48,11 @@ export interface ToolHandler {
 export interface ToolContext {
   editor: IEditorService;
   setTool: (tool: ToolType) => void;
+  /**
+   * 设置画布平移预览偏移量（单位：屏幕像素）
+   * - 仅供 pan 工具使用
+   * - 传 null 表示清除预览
+   */
+  setPanPreview?: (offset: { dx: number; dy: number } | null) => void;
 }
 
