@@ -114,6 +114,14 @@ function App({ canvasContainer }: AppProps) {
   ) => {
     e.preventDefault();
     if(e.ctrlKey || e.metaKey) editorService.zoomAt(point, e.deltaY < 0 ? 0.1 : -0.1);
+    else if(e.shiftKey) {
+      const unit = e.deltaX > 0 ? 50 : -50;
+      editorService.moveViewport({x: unit, y: 0});
+    }
+    else {
+      const unit = e.deltaY > 0 ? 50 : -50;
+      editorService.moveViewport({x: 0, y: unit});
+    }
   };
 
   return (
