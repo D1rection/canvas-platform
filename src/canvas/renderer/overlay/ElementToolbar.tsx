@@ -3,9 +3,6 @@ import type {
   CanvasElement,
   ID,
   ViewportState,
-  ShapeElement,
-  TextElement,
-  ImageElement,
 } from "../../schema/model";
 
 interface ElementToolbarProps {
@@ -112,18 +109,7 @@ const setElementDimensions = (
   return {};
 };
 
-// 获取元素大小
-const getElementSize = (element: CanvasElement): number => {
-  switch (element.type) {
-    case "text":
-      return element.spans[0]?.style.fontSize || 50;
-    case "shape":
-    case "image":
-      return Math.max(element.size.width, element.size.height) || 50;
-    default:
-      return 50;
-  }
-};
+
 
 // 设置元素大小
 const setElementSize = (element: CanvasElement, size: number) => {
