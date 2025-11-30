@@ -72,6 +72,17 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     setIsColorPickerOpen(!isColorPickerOpen);
   };
 
+  // 实时颜色更新处理函数
+  const handleCustomColorChange = (color: string) => {
+    setCustomColor(color);
+    // 简单的颜色格式校验
+    const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(color);
+    if (isValidHex) {
+      const colorUpdates = setElementColor(element, color);
+      onUpdateElement(element.id, colorUpdates);
+    }
+  };
+
   return (
     <div 
       className={styles.colorPickerContainer} 
@@ -122,17 +133,13 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               <input
                 type="color"
                 value={customColor}
-                onChange={(e) => {
-                  setCustomColor(e.target.value);
-                  // 实时更新，但只在 color input blur 或 dropdown 关闭时才调用 handleColorSelect
-                }}
-                onBlur={(e) => handleColorSelect(e.target.value)}
+                onChange={(e) => handleCustomColorChange(e.target.value)}
                 className={styles.colorInput}
               />
               <input
                 type="text"
                 value={customColor}
-                onChange={(e) => setCustomColor(e.target.value)}
+                onChange={(e) => handleCustomColorChange(e.target.value)}
                 onBlur={() => handleColorSelect(customColor)}
                 onKeyPress={(e) => {
                   if (e.key === "Enter") {
