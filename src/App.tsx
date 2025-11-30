@@ -151,6 +151,22 @@ function App({ canvasContainer }: AppProps) {
     editorService.zoomAt(centerPoint, delta);
   };
 
+  // 更新元素属性
+  const handleUpdateElement = (id: ID, updates: any) => {
+    try {
+      editorService.updateElement(id, updates);
+    } catch (error) {
+      console.error("Failed to update element in App:", error);
+    }
+  };
+
+  // 注册画布平移预览回调
+  const handleRegisterPanPreview = (
+    apply: (offset: { dx: number; dy: number } | null) => void,
+  ) => {
+    panPreviewApplyRef.current = apply;
+  };
+
   return (
     <>
       {/* 恢复弹窗 */}
@@ -176,19 +192,13 @@ function App({ canvasContainer }: AppProps) {
               <CanvasView
                 state={canvasState}
                 cursor={toolHandler.cursor}
-                onRegisterPanPreview={(apply) => { panPreviewApplyRef.current = apply }}
+                onRegisterPanPreview={handleRegisterPanPreview}
                 onCanvasPointerDown={handleCanvasPointerDown}
                 onCanvasPointerMove={handleCanvasPointerMove}
                 onCanvasPointerUp={handleCanvasPointerUp}
                 onElementPointerDown={handleElementPointerDown}
                 onWheel={handleWheel}
-                onUpdateElement={(id, updates) => {
-                    try {
-                        editorService.updateElement(id, updates);
-                    } catch (error) {
-                        console.error('Failed to update element in App:', error);
-                    }
-                }}
+                onUpdateElement={handleUpdateElement}
               />
             </div>
           </div>

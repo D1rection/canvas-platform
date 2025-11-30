@@ -233,10 +233,11 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     const style: ShapeStyle = { ...defaultStyle, ..._payload.style };
     const size: Size = _payload.size ?? defaultSize;
 
-    // 计算在当前视口中心位置的场景坐标
+    // 计算初始位置：优先使用 payload.position，否则默认放在当前视口中心附近
     const viewport = state.viewport;
-    const centerX = viewport.x + size.width / 2;
-    const centerY = viewport.y + size.height / 2;
+    const defaultX = viewport.x + size.width / 2;
+    const defaultY = viewport.y + size.height / 2;
+    const position: Point = _payload.position ?? { x: defaultX, y: defaultY };
 
     const newElement: ShapeElement = {
       id,
@@ -245,8 +246,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       style,
       size,
       transform: {
-        x: centerX,
-        y: centerY,
+        x: position.x,
+        y: position.y,
         scaleX: 1,
         scaleY: 1,
         rotation: 0,

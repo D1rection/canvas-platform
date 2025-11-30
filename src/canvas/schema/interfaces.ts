@@ -148,7 +148,7 @@ export interface IEditorService {
   /**
    * 新增一个图形元素。
    *
-   * @param payload 形状类型、样式和初始尺寸等配置
+   * @param payload 形状类型、样式、初始尺寸和可选初始位置等配置
    * @returns 新建元素的 ID
    */
   addShape(payload: {
@@ -158,6 +158,11 @@ export interface IEditorService {
     style?: Partial<ShapeStyle>;
     /** 可选的初始尺寸，未提供时由实现层决定默认大小 */
     size?: Size;
+    /**
+     * 可选的初始位置（场景坐标，表示图形左上角）
+     * - 若未提供，则默认放置在当前视口中心附近
+     */
+    position?: Point;
   }): ID;
 
   /**
