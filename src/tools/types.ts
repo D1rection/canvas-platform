@@ -41,6 +41,11 @@ export interface ToolHandler {
     ctx: ToolContext,
     ev: KeyboardEvent,
   ) => void;
+  /** 右键菜单 */
+  onContextMenu?: (
+    ctx: ToolContext,
+    ev: MouseEvent,
+  ) => void;
   /** 该工具对应的鼠标光标 */
   cursor: string;
 }
@@ -62,7 +67,7 @@ export interface ToolContext {
   /**
    * 显示消息提示
    */
-  message?: {
+  message: {
     success: (content: string) => void;
     error: (content: string) => void;
     warning: (content: string) => void;

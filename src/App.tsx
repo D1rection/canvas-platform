@@ -183,6 +183,17 @@ function App({ canvasContainer }: AppProps) {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [toolHandler, toolContext]);
 
+
+  // 全局右键菜单
+  useEffect(() => {
+    const handleGlobalContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      toolHandler.onContextMenu?.(toolContext, e);
+    };
+    window.addEventListener('contextmenu', handleGlobalContextMenu);
+    return () => window.removeEventListener('contextmenu', handleGlobalContextMenu);
+  }, [toolHandler, toolContext]);
+
   return (
     <>
       {/* 恢复弹窗 */}

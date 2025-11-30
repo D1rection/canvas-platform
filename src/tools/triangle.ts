@@ -1,3 +1,4 @@
+import type { Point } from "../canvas/schema/model";
 import type { ToolHandler } from "./types";
 /**
  * 三角形工具
@@ -9,12 +10,36 @@ export const triangleTool: ToolHandler = {
   cursor: "crosshair",
 
   onCanvasPointerDown: (ctx, point) => {
-    const id = ctx.editor.addShape({
-      shape: "triangle",
-    });
-
-    ctx.editor.transformElement(id, { x: point.x, y: point.y });
-
+    // 创建后切回选择工具
     ctx.setTool("select");
+    ctx.editor.addShape({
+      shape: "triangle",
+      position: point,
+    });
+  },
+
+  onElementPointerDown: (ctx, _id, ev) => {
+    if (!ev) return;
+
+    // 将点击的 client 坐标转换为世界坐标
+    const viewport = ctx.editor.getState().viewport;
+    const target = ev.currentTarget as HTMLElement | null;
+    if (!target) return;
+
+    const rect = target.getBoundingClientRect();
+    const screenX = ev.clientX - rect.left;
+    const screenY = ev.clientY - rect.top;
+
+    const point: Point = {
+      x: viewport.x + screenX / viewport.scale,
+      y: viewport.y + screenY / viewport.scale,
+    };
+
+    // 创建后切回选择工具
+    ctx.setTool("select");
+    ctx.editor.addShape({
+      shape: "triangle",
+      position: point,
+    });
   },
 };

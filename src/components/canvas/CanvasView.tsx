@@ -140,6 +140,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     id: string,
     e: React.PointerEvent<HTMLDivElement>
   ) => {
+    // 仅响应鼠标左键 (button === 0)
+    if (e.button !== 0) {
+      return;
+    }
+
     if (!isDragging && cursor === "grab") setIsDragging(true);
     onElementPointerDown?.(id, e);
     e.stopPropagation();
@@ -199,6 +204,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
    */
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+
+    // 仅响应鼠标左键 (button === 0)
+    if (e.button !== 0) {
+      return;
+    }
 
     // 更精确的工具栏检测逻辑，允许特定输入元素正常工作
     const isToolbarRelated =
