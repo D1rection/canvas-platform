@@ -9,12 +9,12 @@ import type { ToolHandler } from "./types";
 export const rectTool: ToolHandler = {
   cursor: "crosshair",
   onCanvasPointerDown: (ctx, point) => {
+    // 创建后切回选择工具
+    ctx.setTool("select");
     const id = ctx.editor.addShape({
       shape: "rect",
     });
     ctx.editor.transformElement(id, { x: point.x, y: point.y });
-    // 创建后切回选择工具
-    ctx.setTool("select");
   },
 };
 
