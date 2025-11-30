@@ -177,42 +177,42 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   /**
    * 画布空白区域的指针按下处理 - 修复后的工具栏检测逻辑
    */
-  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
+ const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const target = e.target as HTMLElement;
 
-    // 增强的工具栏检测逻辑
-    const isToolbarRelated =
-      // 检查工具栏容器
-      target.closest('[data-toolbar-element="true"]') !== null ||
-      // 检查工具栏内的组件
-      target.closest('[class*="colorPicker"]') !== null ||
-      target.closest('[class*="sizeControl"]') !== null ||
-      target.closest('[class*="opacitySlider"]') !== null ||
-      // 检查表单元素
-      target.tagName === "INPUT" ||
-      target.tagName === "BUTTON" ||
-      target.tagName === "SELECT" ||
-      // 检查特定类名
-      target.classList.contains("colorTrigger") ||
-      target.classList.contains("presetColor") ||
-      target.classList.contains("sliderThumb") ||
-      target.classList.contains("sliderTrack") ||
-      // 检查 CSS 模块类名
-      target.closest(`.${styles.toolbarWrapper}`) !== null;
+  // 更精确的工具栏检测逻辑，允许特定输入元素正常工作
+  const isToolbarRelated =
+    // 检查工具栏容器
+    target.closest('[data-toolbar-element="true"]') !== null ||
+    // 检查工具栏内的组件
+    target.closest('[class*="colorPicker"]') !== null ||
+    target.closest('[class*="sizeControl"]') !== null ||
+    target.closest('[class*="opacitySlider"]') !== null ||
+    // 检查表单元素（排除range类型以允许滑块正常工作）
+  (target instanceof HTMLInputElement && target.type !== "range") ||
+    target.tagName === "BUTTON" ||
+    target.tagName === "SELECT" ||
+    // 检查特定类名
+    target.classList.contains("colorTrigger") ||
+    target.classList.contains("presetColor") ||
+    target.classList.contains("sliderThumb") ||
+    target.classList.contains("sliderTrack") ||
+    // 检查 CSS 模块类名
+    target.closest(`.${styles.toolbarWrapper}`) !== null;
 
-    if (isToolbarRelated) {
-      console.log("Toolbar interaction detected, stopping propagation");
-      e.stopPropagation();
-      e.preventDefault();
-      return;
-    }
+  if (isToolbarRelated) {
+    console.log("Toolbar interaction detected, stopping propagation");
+    e.stopPropagation();
+    // 移除 preventDefault 以允许输入元素正常工作
+    return;
+  }
 
-    if (!onCanvasPointerDown) return;
+  if (!onCanvasPointerDown) return;
 
-    if (!isDragging && cursor === "grab") setIsDragging(true);
-    const point = screenToWorld(e);
-    onCanvasPointerDown(point, e);
-  };
+  if (!isDragging && cursor === "grab") setIsDragging(true);
+  const point = screenToWorld(e);
+  onCanvasPointerDown(point, e);
+};
 
   /**
    * 画布指针移动
