@@ -513,9 +513,39 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @returns 新添加的元素 ID
    */
   const addImage: IEditorService["addImage"] = (_payload) => {
-    // TODO: 实现图片元素添加逻辑
-    throw new Error("addImage not implemented");
+  const id = idService.generateNextID(); // 生成新 ID
+  const { src, naturalSize, size = naturalSize, filters = [] } = _payload;
+
+  // 默认的样式和变换
+  const defaultTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+  const newElement: CanvasElement = {
+    id,
+    type: 'image',
+    src,
+    naturalSize,
+    size,
+    transform: defaultTransform,
+    visible: true,
+    filters,
   };
+
+  // 更新状态
+  const nextState: CanvasRuntimeState = {
+    ...state,
+    document: {
+      ...state.document,
+      elements: { ...state.document.elements, [id]: newElement },
+      rootElementIds: [...state.document.rootElementIds, id],
+      updatedAt: Date.now(),
+    },
+    selection: {
+      selectedIds: [id], // 新添加的元素默认选中
+    },
+  };
+
+  setState(nextState); // 更新状态
+  return id; // 返回新元素的 ID
+};
 
   /**
    * 更新图片滤镜

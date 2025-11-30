@@ -7,7 +7,7 @@ import type {
   ViewportState,
   CanvasElement,
 } from "../../canvas/schema/model";
-import { RectShape, SelectionOverlay } from "../../canvas/renderer";
+import { RectShape, CircleShape,TriangleShape,ImageElement,SelectionOverlay } from "../../canvas/renderer";
 import { ElementToolbar } from "../ElementToolbar";
 import styles from "./CanvasView.module.css";
 
@@ -144,17 +144,29 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
    * 根据元素类型选择渲染组件
    */
   const renderShape = (el: ShapeElement) => {
-    const commonProps = {
-      element: el,
-      viewport: viewport as ViewportState,
-      scale,
-      onPointerDown: (e: React.PointerEvent<HTMLDivElement>) =>
-        handleShapePointerDown(el.id, e),
-    };
+  const commonProps = {
+    element: el,
+    viewport: viewport as ViewportState,
+    scale,
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) =>
+      handleShapePointerDown(el.id, e),
+  };
 
-    if (el.type === "shape" && el.shape === "rect") {
+  if (el.type === "shape") {
+    if (el.shape === "rect") {
       return <RectShape key={el.id} {...commonProps} />;
     }
+    if (el.shape === "circle") {
+      return <CircleShape key={el.id} {...commonProps} />;
+    }
+    if (el.shape === "triangle") {
+      return <TriangleShape key={el.id} {...commonProps} />;
+    }
+  }
+
+  if (el.type === "image") {
+    return <ImageElement key={el.id} element={el} {...commonProps} />;
+  }
     // TODO: 后续添加其他图形类型
     return null;
   };

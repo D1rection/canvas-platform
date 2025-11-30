@@ -1,5 +1,4 @@
 import type { ToolHandler } from "./types";
-
 /**
  * 三角形工具
  *
@@ -9,8 +8,12 @@ import type { ToolHandler } from "./types";
 export const triangleTool: ToolHandler = {
   cursor: "crosshair",
 
-  onCanvasPointerDown: (ctx, _point) => {
-    // TODO: 后续添加三角形工具
+  onCanvasPointerDown: (ctx, point) => {
+    const id = ctx.editor.addShape({
+      shape: "triangle",
+    });
+
+    ctx.editor.transformElement(id, { x: point.x, y: point.y });
 
     ctx.setTool("select");
   },
