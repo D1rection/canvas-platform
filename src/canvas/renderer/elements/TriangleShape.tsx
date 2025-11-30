@@ -56,7 +56,7 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
         points={points}
         fill={style.fill}
         stroke={style.strokeColor}
-        strokeWidth={style.strokeWidth * scale}
+        strokeWidth={2 * style.strokeWidth * scale}
       />
       {/* Hover 高亮：沿三角边绘制一层额外描边，仅在 hover 且未选中时显示 */}
       {isHovered && !isSelected && (
