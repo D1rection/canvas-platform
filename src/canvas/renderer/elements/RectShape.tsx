@@ -29,7 +29,7 @@ export const RectShape: React.FC<RectShapeProps> = ({
   const width = size.width * scale;
   const height = size.height * scale;
 
-  const hoverOutlineWidth = 3 * scale;
+  const hoverOutlineWidth = 2 * scale;
 
   return (
     <div
@@ -52,7 +52,6 @@ export const RectShape: React.FC<RectShapeProps> = ({
         outline: (isHovered && !isSelected)
           ? `${hoverOutlineWidth}px solid #5da500d8`
           : "none",
-        outlineOffset: 2 * scale,
       }}
     />
   );

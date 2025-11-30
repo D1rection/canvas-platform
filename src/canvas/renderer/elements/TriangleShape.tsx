@@ -6,6 +6,8 @@ interface TriangleShapeProps {
   viewport: ViewportState;
   scale: number;
   onPointerDown?: React.PointerEventHandler<SVGSVGElement>;
+  isHovered: boolean;
+  isSelected: boolean;
 }
 
 /**
@@ -17,6 +19,8 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
   viewport,
   scale,
   onPointerDown,
+  isHovered,
+  isSelected,
 }) => {
   const { transform, size, style } = element;
 
@@ -26,11 +30,9 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
   const height = size.height * scale;
 
   // 三角形顶点坐标（等腰）
-  const points = `
-    ${width / 2},0
-    ${width},${height}
-    0,${height}
-  `;
+  // 本地坐标系下的三角形顶点（等腰三角形）
+  const points = `${width / 2},0 ${width},${height} 0,${height}`;
+  const hoverStrokeWidth = 3 * scale;
 
   return (
     <svg
@@ -46,14 +48,25 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
         transformOrigin: "top left",
         overflow: "visible",
         pointerEvents: "visiblePainted",
+        clipPath: "polygon(50% 0, 0 100%, 100% 100%)",
       }}
     >
+      {/* 主体三角形：填充 + 基础描边（选中态可复用 style.strokeColor） */}
       <polygon
         points={points}
         fill={style.fill}
         stroke={style.strokeColor}
         strokeWidth={style.strokeWidth * scale}
       />
+      {/* Hover 高亮：沿三角边绘制一层额外描边，仅在 hover 且未选中时显示 */}
+      {isHovered && !isSelected && (
+        <polygon
+          points={points}
+          fill="none"
+          stroke="#5da500d8"
+          strokeWidth={hoverStrokeWidth}
+        />
+      )}
     </svg>
   );
 };

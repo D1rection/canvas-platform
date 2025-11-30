@@ -6,6 +6,8 @@ interface CircleShapeProps {
   viewport: ViewportState;
   scale: number;
   onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  isHovered: boolean;
+  isSelected: boolean;
 }
 
 /**
@@ -17,6 +19,8 @@ export const CircleShape: React.FC<CircleShapeProps> = ({
   viewport,
   scale,
   onPointerDown,
+  isHovered,
+  isSelected,
 }) => {
   const { transform, size, style } = element;
 
@@ -27,6 +31,8 @@ export const CircleShape: React.FC<CircleShapeProps> = ({
 
   // 圆形使用宽高一致：取最小值，保持圆形比例
   const diameter = Math.min(width, height);
+
+  const hoverOutlineWidth = 2 * scale;
 
   return (
     <div
@@ -46,6 +52,9 @@ export const CircleShape: React.FC<CircleShapeProps> = ({
         boxSizing: "border-box",
         transform: `rotate(${transform.rotation}deg)`,
         transformOrigin: "center",
+        outline: (isHovered && !isSelected)
+          ? `${hoverOutlineWidth}px solid #5da500d8`
+          : "none",
       }}
     />
   );
