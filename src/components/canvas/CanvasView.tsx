@@ -8,7 +8,7 @@ import type {
   CanvasElement,
 } from "../../canvas/schema/model";
 import { RectShape, SelectionOverlay } from "../../canvas/renderer";
-import ElementToolbar from "../../canvas/renderer/overlay/ElementToolbar";
+import { ElementToolbar } from "../ElementToolbar";
 import styles from "./CanvasView.module.css";
 
 interface CanvasViewProps {
@@ -175,19 +175,35 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   /**
-   * 画布空白区域的指针按下处理
+   * 画布空白区域的指针按下处理 - 修复后的工具栏检测逻辑
    */
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // 检查点击目标是否是工具栏或元素工具栏,如果是,则阻止事件冒泡
     const target = e.target as HTMLElement;
-    const isToolbarClick =
-      target.closest(".element-toolbar") !== null ||
-      target.closest("[data-toolbar]") !== null ||
-      target.classList.contains("element-toolbar") ||
-      target.hasAttribute("data-toolbar");
 
-    if (isToolbarClick) {
+    // 增强的工具栏检测逻辑
+    const isToolbarRelated =
+      // 检查工具栏容器
+      target.closest('[data-toolbar-element="true"]') !== null ||
+      // 检查工具栏内的组件
+      target.closest('[class*="colorPicker"]') !== null ||
+      target.closest('[class*="sizeControl"]') !== null ||
+      target.closest('[class*="opacitySlider"]') !== null ||
+      // 检查表单元素
+      target.tagName === "INPUT" ||
+      target.tagName === "BUTTON" ||
+      target.tagName === "SELECT" ||
+      // 检查特定类名
+      target.classList.contains("colorTrigger") ||
+      target.classList.contains("presetColor") ||
+      target.classList.contains("sliderThumb") ||
+      target.classList.contains("sliderTrack") ||
+      // 检查 CSS 模块类名
+      target.closest(`.${styles.toolbarWrapper}`) !== null;
+
+    if (isToolbarRelated) {
+      console.log("Toolbar interaction detected, stopping propagation");
       e.stopPropagation();
+      e.preventDefault();
       return;
     }
 
@@ -253,6 +269,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       }
     });
   }, [onRegisterPanPreview]);
+
   return (
     <div
       className={styles.root}
