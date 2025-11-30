@@ -5,7 +5,7 @@ interface TriangleShapeProps {
   element: ShapeElement;
   viewport: ViewportState;
   scale: number;
-  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  onPointerDown?: React.PointerEventHandler<SVGSVGElement>;
 }
 
 /**

@@ -527,6 +527,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     transform: defaultTransform,
     visible: true,
     filters,
+    locked: false,
+    zIndex: 0,
+    opacity: 1
   };
 
   // 更新状态

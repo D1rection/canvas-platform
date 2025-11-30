@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  min-width: 240px;
+  min-width: 500px;
   z-index: 1000;
   pointer-events: auto;
   transition: top 0.2s ease, left 0.2s ease;
@@ -206,19 +206,40 @@
 
 .sizeSlider {
   width: 100%;
-  height: 4px;
-  border-radius: 2px;
+  height: 6px; /* 从原来的4px改为6px */
+  border-radius: 3px; /* 从原来的2px改为3px */
   background: linear-gradient(to right, #4ecdc4, #45b7d1);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
-  margin: 0;
+  margin: 8px 0; /* 增加上下边距 */
   padding: 0;
 }
 
 .sizeSlider[data-dragging="true"] {
   background: linear-gradient(to right, #45b7d1, #3498db);
+}
+
+/* 自定义滑块拇指样式 */
+.sizeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #45b7d1;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.sizeSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #45b7d1;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: none;
 }
 
 .sizePreview {

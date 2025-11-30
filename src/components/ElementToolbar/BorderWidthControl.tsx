@@ -1,84 +1,119 @@
-// // BorderWidthControl.tsx
+// BorderWidthControl.tsx
+import React, { useState } from "react";
+import type { ID, CanvasElement } from "../../canvas/schema/model";
+import { 
+  getElementBorderWidth, 
+  setElementBorderWidth,
+  getElementBorderColor,
+  setElementBorderColor
+} from "./utils";
+import styles from "./ElementToolbar.module.css";
 
-// import React, { useState, useEffect } from "react";
-// import type { ID, CanvasElement } from "../../canvas/schema/model";
-// import { getElementBorderWidth, setElementBorderWidth } from "./utils";
-// import styles from "./ElementToolbar.module.css";
+interface BorderWidthControlProps {
+  element: CanvasElement;
+  onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
+}
 
-// interface BorderWidthControlProps {
-//   element: CanvasElement;
-//   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
-// }
+export const BorderWidthControl: React.FC<BorderWidthControlProps> = ({
+  element,
+  onUpdateElement,
+}) => {
+  const currentWidth = getElementBorderWidth(element);
+  const [localWidth, setLocalWidth] = useState(currentWidth);
+  // 移除未使用的 isDragging 状态
+  // const [isDragging, setIsDragging] = useState(false);
 
-// export const BorderWidthControl: React.FC<BorderWidthControlProps> = ({ 
-//   element, 
-//   onUpdateElement 
-// }) => {
-//   const [borderWidth, setBorderWidth] = useState(1);
-
-//   // 同步元素边框宽度
-//   useEffect(() => {
-//     setBorderWidth(getElementBorderWidth(element));
-//   }, [element]);
-
-//   // 处理宽度变化
-//   const handleWidthChange = (value: number) => {
-//     const validValue = Math.max(1, Math.min(20, value));
-//     setBorderWidth(validValue);
+  // 更新边框宽度
+  const updateBorderWidth = (width: number) => {
+    const validWidth = Math.max(1, Math.min(20, width));
+    setLocalWidth(validWidth);
     
-//     const widthUpdates = setElementBorderWidth(element, validValue);
-//     onUpdateElement(element.id, widthUpdates);
-//   };
+    // 获取当前边框颜色
+    const currentBorderColor = getElementBorderColor(element);
+    let updates = setElementBorderWidth(element, validWidth);
+    
+    // 如果当前没有边框颜色且设置了边框宽度，则设置默认边框颜色
+    if ((!currentBorderColor || currentBorderColor === "#000000") && validWidth > 0) {
+      const colorUpdates = setElementBorderColor(element, "#000000");
+      updates = { ...updates, ...colorUpdates };
+    }
+    
+    onUpdateElement(element.id, updates);
+  };
 
-//   // 阻止事件冒泡
-//   const handleSliderEvent = (e: React.MouseEvent) => {
-//     e.stopPropagation();
-//   };
+  // 处理输入框变化
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    if (!isNaN(value)) {
+      updateBorderWidth(value);
+    }
+  };
 
-//   // 处理输入框变化
-//   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const value = parseInt(e.target.value, 10);
-//     if (!isNaN(value)) {
-//       handleWidthChange(value);
-//     }
-//   };
+  // 处理滑块变化
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    updateBorderWidth(value);
+  };
 
-//   // 仅对形状类型元素显示
-//   if (element.type !== 'shape') return null;
+  // 移除未使用的拖拽处理函数
+  // 处理滑块拖拽开始/结束
+  // const handleDragStart = () => {
+  //   setIsDragging(true);
+  // };
+  
+  // const handleDragEnd = () => {
+  //   setIsDragging(false);
+  // };
 
-//   return (
-//     <div 
-//       className={styles.borderWidthControlContainer}
-//       onMouseDown={(e) => e.stopPropagation()}
-//     >
-//       <div className={styles.borderWidthControlHeader}>
-//         <label className={styles.borderWidthControlLabel}>边框宽度</label>
-//       </div>
+  // 阻止所有事件冒泡到工具栏
+  const handleEventStopPropagation = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  };
 
-//       <div className={styles.borderWidthInputWrapper}>
-//         <input
-//           type="number"
-//           value={borderWidth}
-//           onChange={handleInputChange}
-//           min="1"
-//           max="20"
-//           className={styles.borderWidthInput}
-//           onMouseDown={(e) => e.stopPropagation()}
-//         />
-//         <span className={styles.borderWidthUnit}>px</span>
-//       </div>
-
-//       <input
-//         type="range"
-//         min="1"
-//         max="20"
-//         step="1"
-//         value={borderWidth}
-//         onChange={(e) => handleWidthChange(Number(e.target.value))}
-//         onMouseDown={handleSliderEvent}
-//         onMouseUp={handleSliderEvent}
-//         className={styles.borderWidthSlider}
-//       />
-//     </div>
-//   );
-// };
+  return (
+    <div 
+      className={styles.borderWidthControlContainer}
+      onMouseDown={handleEventStopPropagation}
+      data-toolbar-element="true"
+    >
+      <div className={styles.borderWidthControlHeader}>
+        <label className={styles.borderWidthControlLabel}>边框</label>
+      </div>
+      
+      <div className={styles.borderWidthInputWrapper}>
+        <input
+          type="number"
+          min="1"
+          max="20"
+          value={localWidth}
+          onChange={handleInputChange}
+          onMouseDown={handleEventStopPropagation}
+          onTouchStart={handleEventStopPropagation}
+          onClick={handleEventStopPropagation}
+          className={styles.borderWidthInput}
+        />
+        <span className={styles.borderWidthUnit}>px</span>
+      </div>
+      
+      <input
+        type="range"
+        min="1"
+        max="20"
+        value={localWidth}
+        onChange={handleSliderChange}
+        onMouseDown={handleEventStopPropagation}
+        onTouchStart={handleEventStopPropagation}
+        onClick={handleEventStopPropagation}
+        onPointerDown={handleEventStopPropagation}
+        className={styles.borderWidthSlider}
+        data-toolbar-element="true"
+      />
+      
+      <div className={styles.borderWidthPreview}>
+        <span>细</span>
+        <span>{localWidth}px</span>
+        <span>粗</span>
+      </div>
+    </div>
+  );
+};

@@ -1,9 +1,9 @@
-// index.tsx
-
 import React, { useState, useRef, useEffect } from "react";
 import { ColorPicker } from "./ColorPicker";
+import { BorderColorPicker } from "./BorderColorPicker"; // 引入边框颜色选择器
 import { SizeControl } from "./SizeControl";
 import { OpacitySlider } from "./OpacitySlider";
+import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
 import type { ID, CanvasElement, ViewportState } from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
 
@@ -193,38 +193,49 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
   };
 
 
-  return (
-    <div
-      ref={toolbarRef}
-      className={styles.toolbarWrapper}
-      onClick={handleToolbarClick}
-      onMouseDown={handleToolbarDragStart}
-      style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-        width: getResponsiveToolbarWidth(), 
-        cursor: isToolbarDragging ? "grabbing" : "grab",
-      }}
-    >
-      {/* 颜色选择器 */}
-      <ColorPicker 
-        element={element} 
-        onUpdateElement={onUpdateElement} 
-      />
+return (
+  <div
+    ref={toolbarRef}
+    className={styles.toolbarWrapper}
+    onClick={handleToolbarClick}
+    onMouseDown={handleToolbarDragStart}
+    style={{
+      top: `${position.top}px`,
+      left: `${position.left}px`,
+      width: getResponsiveToolbarWidth(), 
+      cursor: isToolbarDragging ? "grabbing" : "grab",
+    }}
+  >
+    {/* 颜色选择器 */}
+    <ColorPicker 
+      element={element} 
+      onUpdateElement={onUpdateElement} 
+    />
 
-      {/* 大小调节区域 */}
-      <SizeControl 
-        element={element} 
-        onUpdateElement={onUpdateElement} 
-      />
+    {/* 边框颜色选择器 */}
+    <BorderColorPicker
+      element={element}
+      onUpdateElement={onUpdateElement}
+    />
 
-      {/* 透明度调节 */}
-      <OpacitySlider 
-        element={element} 
-        onUpdateElement={onUpdateElement} 
-      />
-    </div>
-  );
-};
+    {/* 大小调节区域 */}
+    <SizeControl 
+      element={element} 
+      onUpdateElement={onUpdateElement} 
+    />
 
+    {/* 边框宽度控制 */}
+    <BorderWidthControl
+      element={element}
+      onUpdateElement={onUpdateElement}
+    />
+
+    {/* 透明度调节 */}
+    <OpacitySlider 
+      element={element} 
+      onUpdateElement={onUpdateElement} 
+    />
+  </div>
+);
+}
 export default ElementToolbar;

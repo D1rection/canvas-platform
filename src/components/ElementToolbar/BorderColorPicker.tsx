@@ -1,141 +1,103 @@
-// // BorderColorPicker.tsx
+// BorderColorPicker.tsx
+import React, { useState } from "react";
+import type { ID, CanvasElement } from "../../canvas/schema/model";
+import {
+  getElementBorderColor,
+  setElementBorderColor,
+  COLOR_PRESETS,
+} from "./utils";
+import styles from "./ElementToolbar.module.css";
 
-// import React, { useState, useRef, useEffect } from "react";
-// import type { ID, CanvasElement } from "../../canvas/schema/model";
-// import { getElementBorderColor, setElementBorderColor, COLOR_PRESETS } from "./utils";
-// import styles from "./ElementToolbar.module.css";
+interface BorderColorPickerProps {
+  element: CanvasElement;
+  onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
+}
 
-// interface BorderColorPickerProps {
-//   element: CanvasElement;
-//   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
-// }
+export const BorderColorPicker: React.FC<BorderColorPickerProps> = ({
+  element,
+  onUpdateElement,
+}) => {
+  const [showPicker, setShowPicker] = useState(false);
+  const currentColor = getElementBorderColor(element);
 
-// export const BorderColorPicker: React.FC<BorderColorPickerProps> = ({ 
-//   element, 
-//   onUpdateElement 
-// }) => {
-//   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-//   const [customColor, setCustomColor] = useState('#000000');
-//   const colorPickerRef = useRef<HTMLDivElement>(null);
-  
-//   // 获取当前边框颜色
-//   const currentColor = getElementBorderColor(element);
+  // 处理颜色选择
+  const handleColorSelect = (color: string) => {
+    const updates = setElementBorderColor(element, color);
+    onUpdateElement(element.id, updates);
+    setShowPicker(false);
+  };
 
-//   // 同步元素边框颜色到自定义颜色输入框
-//   useEffect(() => {
-//     setCustomColor(currentColor);
-//   }, [currentColor]);
+  // 处理自定义颜色输入
+  const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const color = e.target.value;
+    const updates = setElementBorderColor(element, color);
+    onUpdateElement(element.id, updates);
+  };
 
-//   // 处理点击外部关闭颜色选择器
-//   useEffect(() => {
-//     const handleClickOutside = (event: MouseEvent) => {
-//       if (
-//         colorPickerRef.current &&
-//         !colorPickerRef.current.contains(event.target as Node)
-//       ) {
-//         setIsColorPickerOpen(false);
-//       }
-//     };
+  return (
+    <div
+      className={styles.colorPickerContainer}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {/* 边框颜色触发器 */}
+      <div
+        className={styles.borderColorTrigger}
+        style={{ backgroundColor: currentColor }}
+        onClick={() => setShowPicker(!showPicker)}
+        title="边框颜色"
+      >
+        {currentColor === "transparent" && (
+          <span style={{ color: "#fff", fontSize: "10px" }}>无</span>
+        )}
+      </div>
 
-//     document.addEventListener("mousedown", handleClickOutside);
-//     return () => document.removeEventListener("mousedown", handleClickOutside);
-//   }, []);
+      {/* 颜色选择器弹窗 */}
+      {showPicker && (
+        <div className={styles.colorPickerDropdown}>
+          {/* 预设颜色 */}
+          <div className={styles.colorPresets}>
+            {COLOR_PRESETS.map((color) => (
+              <button
+                key={color}
+                className={styles.colorOption}
+                style={{ backgroundColor: color }}
+                onClick={() => handleColorSelect(color)}
+                aria-label={`选择颜色 ${color}`}
+              />
+            ))}
+            {/* 透明色选项 */}
+            <button
+              className={styles.colorOption}
+              style={{
+                background:
+                  "repeating-conic-gradient(#ccc 0% 25%, transparent 0% 50%) 50% / 8px 8px",
+              }}
+              onClick={() => handleColorSelect("transparent")}
+              aria-label="无边框"
+            />
+          </div>
 
-//   // 处理颜色选择
-//   const handleColorSelect = (color: string, event?: React.MouseEvent) => {
-//     if (event) {
-//       event.stopPropagation();
-//     }
+          {/* 自定义颜色输入 */}
+          <label className={styles.customColorLabel}>自定义颜色</label>
+          <div className={styles.customColorInputs}>
+            <input
+              type="color"
+              value={currentColor === "transparent" ? "#000000" : currentColor}
+              onChange={handleCustomColorChange}
+              className={styles.colorInput}
+            />
+            <input
+              type="text"
+              value={currentColor}
+              onChange={(e) => handleColorSelect(e.target.value)}
+              className={styles.hexInput}
+              placeholder="#000000"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-//     // 验证Hex颜色格式
-//     const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(color);
-//     let validColor = isValidHex ? color : currentColor;
-    
-//     if (validColor !== currentColor) {
-//       const colorUpdates = setElementBorderColor(element, validColor);
-//       onUpdateElement(element.id, colorUpdates);
-//     }
-//     setCustomColor(validColor);
-//     setIsColorPickerOpen(false);
-//   };
-
-//   // 处理颜色选择器开关
-//   const handleToggle = (e: React.MouseEvent) => {
-//     e.stopPropagation();
-//     setIsColorPickerOpen(!isColorPickerOpen);
-//   };
-
-//   // 仅对形状类型元素显示
-//   if (element.type !== 'shape') return null;
-
-//   return (
-//     <div 
-//       className={styles.colorPickerContainer} 
-//       ref={colorPickerRef}
-//       onMouseDown={(e) => e.stopPropagation()}
-//     >
-//       <button
-//         className={styles.borderColorTrigger}
-//         onClick={handleToggle}
-//         style={{
-//           border: `2px solid ${currentColor}`, 
-//           background: 'transparent',
-//           transform: isColorPickerOpen ? "scale(1.05)" : "scale(1)",
-//         }}
-//         title="选择边框颜色"
-//       >
-//         ⯂
-//       </button>
-
-//       {isColorPickerOpen && (
-//         <div
-//           className={styles.colorPickerDropdown}
-//           onClick={(e) => e.stopPropagation()}
-//         >
-//           {/* 预设颜色网格 */}
-//           <div className={styles.colorPresets}>
-//             {COLOR_PRESETS.map((color) => (
-//               <button
-//                 key={color}
-//                 className={styles.colorOption}
-//                 onClick={(e) => handleColorSelect(color, e)}
-//                 style={{
-//                   background: color,
-//                   border: color === "#FFFFFF" ? "1px solid #e0e0e0" : "none",
-//                 }}
-//                 title={color}
-//               />
-//             ))}
-//           </div>
-
-//           {/* 自定义颜色输入 */}
-//           <div className={styles.customColorSection}>
-//             <label className={styles.customColorLabel}>自定义边框颜色:</label>
-//             <div className={styles.customColorInputs}>
-//               <input
-//                 type="color"
-//                 value={customColor}
-//                 onChange={(e) => setCustomColor(e.target.value)}
-//                 onBlur={(e) => handleColorSelect(e.target.value)}
-//                 className={styles.colorInput}
-//               />
-//               <input
-//                 type="text"
-//                 value={customColor}
-//                 onChange={(e) => setCustomColor(e.target.value)}
-//                 onBlur={() => handleColorSelect(customColor)}
-//                 onKeyPress={(e) => {
-//                   if (e.key === "Enter") {
-//                     handleColorSelect(customColor);
-//                   }
-//                 }}
-//                 className={styles.hexInput}
-//                 placeholder="#000000"
-//               />
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
+export default BorderColorPicker;

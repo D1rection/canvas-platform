@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import type { ID, CanvasElement } from "../../canvas/schema/model";
-import { getElementSize, setElementDimensions, setElementSizeFromSlider, getElementSizeSliderValue } from "./utils";
+import {
+  getElementSize,
+  setElementDimensions,
+  setElementSizeFromSlider,
+  getElementSizeSliderValue,
+} from "./utils";
 import styles from "./ElementToolbar.module.css";
 
 interface SizeControlProps {
@@ -19,7 +24,7 @@ export const SizeControl: React.FC<SizeControlProps> = ({
   const [height, setHeight] = useState(initialSize.height);
   const [isDragging, setIsDragging] = useState(false);
   // 保持宽高比开关，默认为开启
-  const [lockAspectRatio, setLockAspectRatio] = useState(true); 
+  const [lockAspectRatio, setLockAspectRatio] = useState(true);
 
   // 当元素改变时更新本地状态
   useEffect(() => {
@@ -40,8 +45,8 @@ export const SizeControl: React.FC<SizeControlProps> = ({
   const handleWidthChange = (newWidth: number) => {
     const oldWidth = width;
     const oldHeight = height;
-    
-    newWidth = Math.max(1, newWidth); 
+
+    newWidth = Math.max(1, newWidth);
 
     let newHeight = oldHeight;
     if (lockAspectRatio && oldWidth > 0 && oldHeight > 0) {
@@ -49,7 +54,7 @@ export const SizeControl: React.FC<SizeControlProps> = ({
       const aspectRatio = oldHeight / oldWidth;
       newHeight = Math.max(1, newWidth * aspectRatio);
     }
-    
+
     updateElementDimensions(newWidth, newHeight);
   };
 
@@ -58,7 +63,7 @@ export const SizeControl: React.FC<SizeControlProps> = ({
     const oldWidth = width;
     const oldHeight = height;
 
-    newHeight = Math.max(1, newHeight); 
+    newHeight = Math.max(1, newHeight);
 
     let newWidth = oldWidth;
     if (lockAspectRatio && oldWidth > 0 && oldHeight > 0) {
@@ -66,7 +71,7 @@ export const SizeControl: React.FC<SizeControlProps> = ({
       const aspectRatio = oldWidth / oldHeight;
       newWidth = Math.max(1, newHeight * aspectRatio);
     }
-    
+
     updateElementDimensions(newWidth, newHeight);
   };
 
@@ -75,7 +80,7 @@ export const SizeControl: React.FC<SizeControlProps> = ({
     const value = Number(e.target.value);
     if (!isNaN(value) && value > 0) {
       handleWidthChange(value);
-    } 
+    }
   };
 
   // 处理高度输入框变化
@@ -93,10 +98,10 @@ export const SizeControl: React.FC<SizeControlProps> = ({
   // 处理综合大小调整（尺寸滑块）
   const handleSizeSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sizeValue = Number(e.target.value);
-    
+
     const updates = setElementSizeFromSlider(element, sizeValue);
     onUpdateElement(element.id, updates);
-    
+
     // 更新本地 state
     if (element.type === "text") {
       setWidth(sizeValue);
@@ -108,33 +113,32 @@ export const SizeControl: React.FC<SizeControlProps> = ({
       setHeight(newSize.height);
     }
   };
-  
+
   // 切换宽高比锁定
   const toggleAspectRatioLock = () => {
-    setLockAspectRatio(prev => !prev);
-  }
+    setLockAspectRatio((prev) => !prev);
+  };
 
   // 形状/图片元素才显示宽高比锁定按钮
-  const isSizable = element.type === 'shape' || element.type === 'image';
-  
+  const isSizable = element.type === "shape" || element.type === "image";
+
   // 文本元素的显示值是 fontSize (即 height 的值)，shape/image 的显示值是 width/height
   const displayWidth = isSizable ? width.toFixed(0) : height.toFixed(0);
   const displayHeight = height.toFixed(0);
-  const placeholderW = isSizable ? '宽' : '字体';
-  const placeholderH = isSizable ? '高' : '大小';
-
+  const placeholderW = isSizable ? "宽" : "字体";
+  const placeholderH = isSizable ? "高" : "大小";
 
   return (
-    <div 
-        className={styles.sizeControlContainer} 
-        // 阻止冒泡到工具栏容器，防止触发拖拽
-        onMouseDown={e => e.stopPropagation()}
+    <div
+      className={styles.sizeControlContainer}
+      // 阻止冒泡到工具栏容器，防止触发拖拽
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div className={styles.sizeControlHeader}>
         <label className={styles.sizeControlLabel}>尺寸</label>
         {/* 宽高比锁定按钮 */}
         {isSizable && (
-           <button
+          <button
             onClick={toggleAspectRatioLock}
             className={[
               styles.aspectRatioButton,
@@ -142,7 +146,7 @@ export const SizeControl: React.FC<SizeControlProps> = ({
             ].join(" ")}
             title={lockAspectRatio ? "取消保持宽高比" : "保持宽高比"}
           >
-            {lockAspectRatio ? '🔗' : '🔓'}
+            {lockAspectRatio ? "🔗" : "🔓"}
           </button>
         )}
       </div>
@@ -178,23 +182,30 @@ export const SizeControl: React.FC<SizeControlProps> = ({
       <input
         type="range"
         min="1"
-        max={element.type === 'text' ? "100" : "500"} // 文本最大字体100，其他元素最大500
-        value={getElementSizeSliderValue(element)} 
+        max={element.type === "text" ? "100" : "500"} // 文本最大字体100，其他元素最大500
+        value={getElementSizeSliderValue(element)}
         onChange={handleSizeSliderChange}
         onMouseDown={handleDragStart}
         onMouseUp={handleDragEnd}
         onTouchStart={handleDragStart}
         onTouchEnd={handleDragEnd}
         className={styles.sizeSlider}
-        data-dragging={isDragging} 
+        data-dragging={isDragging}
         title="拖拽调整大小"
       />
-
+      {/* 尺寸控制容器结束 */}
+      <div
+        className={styles.sizeControlContainer}
+        onMouseDown={(e) => e.stopPropagation()}
+        data-toolbar-element="true"
+      ></div>
       {/* 尺寸预览和单位显示 */}
       <div className={styles.sizePreview}>
         <span>小</span>
         <span style={{ color: isDragging ? "#45B7D1" : "#999" }}>
-          {element.type === 'text' ? `${displayHeight} px (字体)` : `${displayWidth} × ${displayHeight} px`}
+          {element.type === "text"
+            ? `${displayHeight} px (字体)`
+            : `${displayWidth} × ${displayHeight} px`}
         </span>
         <span>大</span>
       </div>
