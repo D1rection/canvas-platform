@@ -6,6 +6,7 @@ import type { CanvasRuntimeState, ID, Point } from "./canvas/schema/model";
 import type { CanvasContainer } from "./canvas/di/container";
 import { getToolHandler, type ToolContext } from "./tools";
 import styles from "./App.module.css";
+import { ZoomControl } from "./components/zoomcontrol/ZoomControl";
 
 interface AppProps {
   canvasContainer: CanvasContainer;
@@ -129,6 +130,27 @@ function App({ canvasContainer }: AppProps) {
     }
   };
 
+  // 缩放控制
+  const handleChangeScale = (nextScale: number) => {
+    const { viewport } = editorService.getState();
+    const currentScale = viewport.scale;
+    const delta = nextScale - currentScale;
+    if (delta === 0) return;
+
+    // 估算视口中心对应的场景坐标
+    const viewportWidth =
+      typeof window !== "undefined" ? window.innerWidth : 0;
+    const viewportHeight =
+      typeof window !== "undefined" ? window.innerHeight : 0;
+
+    const centerPoint: Point = {
+      x: viewport.x + viewportWidth / 2 / currentScale,
+      y: viewport.y + viewportHeight / 2 / currentScale,
+    };
+
+    editorService.zoomAt(centerPoint, delta);
+  };
+
   return (
     <>
       {/* 恢复弹窗 */}
@@ -143,6 +165,11 @@ function App({ canvasContainer }: AppProps) {
         <>
           {/* 工具栏 */}
           <Toolbar currentTool={currentTool} onChangeTool={setTool} />
+          {/* 缩放栏 */}
+          <ZoomControl
+            scale={canvasState.viewport.scale}
+            onChangeScale={handleChangeScale}
+          />
           {/* 画布容器 */}
           <div className={styles.canvasRoot}>
             <div className={styles.canvasViewportWrapper}>
