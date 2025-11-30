@@ -411,6 +411,8 @@ export interface SelectionState {
   } | null;
 }
 
+
+
 /**
  * 辅助线
  */
@@ -442,6 +444,12 @@ export interface CanvasRuntimeState {
   /** 当前选区与文本编辑状态 */
   selection: SelectionState;
   // guides: GuidesState;
+
+  /** 剪贴板状态 */
+  clipboard: {
+    elements: CanvasElement[];
+    copiedAt: number; // 时间戳
+  } | null;
 }
 
 /**

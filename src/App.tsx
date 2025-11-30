@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Message } from "@arco-design/web-react";
 import { CanvasView } from "./components/canvas/CanvasView";
 import { Toolbar, type ToolType } from "./components/toolbar/Toolbar";
 import { RecoveryModal } from "./components/recovery/RecoveryModal";
@@ -77,6 +78,12 @@ function App({ canvasContainer }: AppProps) {
       setPanPreview: (offset) => {
         panPreviewApplyRef.current?.(offset);
       },
+      message: {
+        success: (content: string) => Message.success(content),
+        error: (content: string) => Message.error(content),
+        warning: (content: string) => Message.warning(content),
+        info: (content: string) => Message.info(content),
+      },
     }),
     [editorService, currentTool],
   );
@@ -154,10 +161,10 @@ function App({ canvasContainer }: AppProps) {
   const handleUpdateElement = (id: ID, updates: any) => {
     try {
       editorService.updateElement(id, updates);
-      } catch (error) {
+    } catch (error) {
       console.error("Failed to update element in App:", error);
-      }
-    };
+    }
+  };
 
   // 注册画布平移预览回调
   const handleRegisterPanPreview = (
@@ -165,6 +172,16 @@ function App({ canvasContainer }: AppProps) {
   ) => {
     panPreviewApplyRef.current = apply;
   };
+
+  // 全局键盘事件监听
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      toolHandler.onKeyDown?.(toolContext, e);
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [toolHandler, toolContext]);
 
   return (
     <>

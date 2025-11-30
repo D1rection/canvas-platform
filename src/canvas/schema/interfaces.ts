@@ -302,9 +302,10 @@ export interface IEditorService {
    * 粘贴剪贴板中的元素到画布。
    *
    * @param offset 可选的位置偏移（场景坐标），未提供时自动偏移一定距离
+   * @param pointerPosition 鼠标位置（屏幕坐标）
    * @returns 新粘贴的元素 ID 列表
    */
-  paste(offset?: Point): ID[];
+  paste(offset?: Point, pointerPosition?: Point): ID[];
 
   // ─────────────────────────────────────────────────────────────
   // 悬停状态

@@ -53,6 +53,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     selection: {
       selectedIds: [],
     },
+    clipboard: null,
   };
 
   /**
@@ -504,7 +505,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   };
 
   // ─────────────────────────────────────────────────────────────
-  // 图片相关（待实现）
+  // 图片相关
   // ─────────────────────────────────────────────────────────────
 
   /**
@@ -623,29 +624,139 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   };
 
   // ─────────────────────────────────────────────────────────────
-  // 复制粘贴（待实现）
+  // 复制粘贴
   // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 粘贴计数器 - 用于累积偏移
+   * 防止连续粘贴时元素重叠
+   */
+  let pasteCount = 0;
 
   /**
    * 复制选中元素到剪贴板
    */
   const copySelection: IEditorService["copySelection"] = () => {
-    // TODO: 实现复制逻辑
-    throw new Error("copySelection not implemented");
+    const { selectedIds } = state.selection;
+    const { elements } = state.document;
+
+    const copiedElements = selectedIds
+      .map(id => elements[id])
+      .filter(Boolean)
+      .map(el => ({
+        ...el,
+        id: idService.generateNextID(),
+      }));
+
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      clipboard: {
+        elements: copiedElements,
+        copiedAt: Date.now(),
+      },
+    };
+
+    pasteCount = 0;
+
+    setState(nextState, { persist: false });
   };
 
   /**
    * 粘贴剪贴板内容
-   * @param _offset 位置偏移
+   * @param _offset 位置偏移（剪贴板内容的基准偏移）
+   * @param _pointerPosition 鼠标位置（场景坐标，如果提供则直接粘贴到该位置）
    * @returns 新粘贴的元素 ID 列表
    */
-  const paste: IEditorService["paste"] = (_offset?: Point) => {
-    // TODO: 实现粘贴逻辑
-    throw new Error("paste not implemented");
+  const paste: IEditorService["paste"] = (_offset?: Point, _pointerPosition?: Point) => {
+    if (state.clipboard === null || state.clipboard.elements.length === 0) {
+      return [];
+    }
+
+    const { elements: copiedElements } = state.clipboard;
+    const pastedIds: ID[] = [];
+    const newElements: Record<ID, CanvasElement> = {};
+
+    // 如果提供了鼠标位置，直接将元素粘贴到鼠标位置
+    if (_pointerPosition) {
+      pasteCount = 0; // 重置计数器
+
+      const firstElement = copiedElements[0];
+      if (firstElement) {
+        // 计算相对偏移：其他元素相对于第一个元素的偏移
+        const deltaX = _pointerPosition.x - firstElement.transform.x;
+        const deltaY = _pointerPosition.y - firstElement.transform.y;
+
+        copiedElements.forEach((element) => {
+          const newId = idService.generateNextID();
+
+          const newElement: CanvasElement = {
+            ...element,
+            id: newId,
+            transform: {
+              ...element.transform,
+              x: element.transform.x + deltaX,
+              y: element.transform.y + deltaY,
+            },
+          };
+
+          newElements[newId] = newElement;
+          pastedIds.push(newId);
+        });
+      }
+    } else {
+      // 没有鼠标位置，使用累积的偏移量逻辑
+      const baseOffset = _offset || { x: 20, y: 20 };
+      pasteCount += 1; // 增加计数器，确保每次粘贴都有不同偏移
+
+      copiedElements.forEach((element, _index) => {
+        const newId = idService.generateNextID();
+
+        // 计算累积偏移：基础偏移 * 计数器
+        const totalOffsetX = baseOffset.x * pasteCount;
+        const totalOffsetY = baseOffset.y * pasteCount;
+
+        const newElement: CanvasElement = {
+          ...element,
+          id: newId,
+          transform: {
+            ...element.transform,
+            x: element.transform.x + totalOffsetX,
+            y: element.transform.y + totalOffsetY,
+          },
+        };
+
+        newElements[newId] = newElement;
+        pastedIds.push(newId);
+      });
+    }
+
+    // 更新文档状态
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      document: {
+        ...state.document,
+        elements: {
+          ...state.document.elements,
+          ...newElements,
+        },
+        rootElementIds: [
+          ...state.document.rootElementIds,
+          ...pastedIds,
+        ],
+        updatedAt: Date.now(),
+      },
+      selection: {
+        ...state.selection,
+        selectedIds: pastedIds, // 选中新粘贴的元素
+      },
+    };
+
+    setState(nextState);
+    return pastedIds;
   };
 
   // ─────────────────────────────────────────────────────────────
-  // 悬停状态（待实现）
+  // 悬停状态
   // ─────────────────────────────────────────────────────────────
 
   /**
@@ -700,6 +811,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       document: persisted.document,
       viewport: persisted.viewport ?? { x: 0, y: 0, scale: 1 },
       selection: { selectedIds: [] },
+      clipboard: null,
     };
 
     // 直接赋值
@@ -724,6 +836,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         },
         viewport: { x: 0, y: 0, scale: 1 },
         selection: { selectedIds: [] },
+        clipboard: null,
       };
       notify();
 

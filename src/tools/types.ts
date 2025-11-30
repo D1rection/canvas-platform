@@ -36,6 +36,11 @@ export interface ToolHandler {
     id: ID,
     ev: PointerEvent,
   ) => void;
+  /** 键盘事件 */
+  onKeyDown?: (
+    ctx: ToolContext,
+    ev: KeyboardEvent,
+  ) => void;
   /** 该工具对应的鼠标光标 */
   cursor: string;
 }
@@ -54,5 +59,13 @@ export interface ToolContext {
    * - 传 null 表示清除预览
    */
   setPanPreview?: (offset: { dx: number; dy: number } | null) => void;
+  /**
+   * 显示消息提示
+   */
+  message?: {
+    success: (content: string) => void;
+    error: (content: string) => void;
+    warning: (content: string) => void;
+    info: (content: string) => void;
+  };
 }
-

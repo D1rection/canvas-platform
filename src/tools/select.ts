@@ -52,5 +52,19 @@ export const selectTool: ToolHandler = {
       ctx.editor.setHovered(hovered);
     }
   },
-};
 
+  onKeyDown: (ctx, ev) => {
+    if((ev.ctrlKey || ev.metaKey) && ev.key === "c") {
+      ev.preventDefault();
+      ctx.editor.copySelection();
+      ctx.message?.success('已复制元素');
+      return;
+    }
+    if((ev.ctrlKey || ev.metaKey) && ev.key === "v") {
+      ev.preventDefault();
+      ctx.editor.paste();
+      ctx.message?.success('已粘贴元素');
+      return;
+    }
+  },
+};
