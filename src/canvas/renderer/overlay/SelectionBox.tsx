@@ -19,7 +19,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
   height,
   rotation = 0,
 }) => {
-  const handleSize = 8;
+  const handleSize = 10;
   const handleOffset = -handleSize / 2;
 
   const handleStyle: React.CSSProperties = {
@@ -27,7 +27,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
     width: handleSize,
     height: handleSize,
     backgroundColor: "#ffffff",
-    border: "2px solid #0ea5e9",
+    border: "2px solid #5ea500",
     borderRadius: 2,
     boxSizing: "border-box",
   };
@@ -47,7 +47,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
         top,
         width,
         height,
-        border: "2px solid #0ea5e9",
+        border: "2px solid #5ea500",
         boxSizing: "border-box",
         pointerEvents: "auto",
         transform: `rotate(${rotation}deg)`,

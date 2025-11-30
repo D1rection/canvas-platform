@@ -4,6 +4,8 @@
   display: flex;
   align-items: stretch;
   justify-content: stretch;
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .canvasViewportWrapper {

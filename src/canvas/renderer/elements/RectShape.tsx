@@ -6,6 +6,8 @@ interface RectShapeProps {
   viewport: ViewportState;
   scale: number;
   onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  isHovered: boolean;
+  isSelected: boolean;
 }
 
 /**
@@ -17,6 +19,8 @@ export const RectShape: React.FC<RectShapeProps> = ({
   viewport,
   scale,
   onPointerDown,
+  isHovered,
+  isSelected,
 }) => {
   const { transform, size, style } = element;
 
@@ -24,6 +28,8 @@ export const RectShape: React.FC<RectShapeProps> = ({
   const top = (transform.y - viewport.y) * scale;
   const width = size.width * scale;
   const height = size.height * scale;
+
+  const hoverOutlineWidth = 3 * scale;
 
   return (
     <div
@@ -43,6 +49,10 @@ export const RectShape: React.FC<RectShapeProps> = ({
         transform: `rotate(${transform.rotation}deg)`,
         transformOrigin: "top left",
         opacity: element.opacity ?? 1, // 应用元素透明度，默认为1
+        outline: (isHovered && !isSelected)
+          ? `${hoverOutlineWidth}px solid #5da500d8`
+          : "none",
+        outlineOffset: 2 * scale,
       }}
     />
   );

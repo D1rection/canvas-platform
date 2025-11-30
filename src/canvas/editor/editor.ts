@@ -653,8 +653,14 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param _id 悬停元素 ID，null 清除悬停
    */
   const setHovered: IEditorService["setHovered"] = (_id: ID | null) => {
-    // TODO: 实现悬停状态逻辑
-    throw new Error("setHovered not implemented");
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      selection: {
+        ...state.selection,
+        hoveredId: _id ?? undefined,
+      },
+    };
+    setState(nextState, { persist: false });
   };
 
   // ─────────────────────────────────────────────────────────────

@@ -154,7 +154,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       viewport: viewport as ViewportState,
       scale,
       onPointerDown: (e: React.PointerEvent<any>) =>
-        handleShapePointerDown(el.id, e as React.PointerEvent<HTMLDivElement>),
+        handleShapePointerDown(el.id, e),
+      isHovered: selection.hoveredId === el.id,
+      isSelected: selection.selectedIds.includes(el.id),
     };
 
     if (el.type === "shape") {

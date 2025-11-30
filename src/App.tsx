@@ -118,7 +118,6 @@ function App({ canvasContainer }: AppProps) {
     point: Point,
     e: React.WheelEvent<HTMLDivElement>
   ) => {
-    e.preventDefault();
     if(e.ctrlKey || e.metaKey) editorService.zoomAt(point, e.deltaY < 0 ? 0.1 : -0.1);
     else if(e.shiftKey) {
       const unit = e.deltaX > 0 ? 50 : -50;
@@ -155,10 +154,10 @@ function App({ canvasContainer }: AppProps) {
   const handleUpdateElement = (id: ID, updates: any) => {
     try {
       editorService.updateElement(id, updates);
-    } catch (error) {
+      } catch (error) {
       console.error("Failed to update element in App:", error);
-    }
-  };
+      }
+    };
 
   // 注册画布平移预览回调
   const handleRegisterPanPreview = (
@@ -201,7 +200,7 @@ function App({ canvasContainer }: AppProps) {
                 onUpdateElement={handleUpdateElement}
               />
             </div>
-          </div>
+      </div>
         </>
       )}
     </>
