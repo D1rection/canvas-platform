@@ -1,4 +1,5 @@
 import type { ToolHandler } from "./types";
+import type { ImageElement } from "../canvas/schema/model";
 
 export const imageTool: ToolHandler = {
   cursor: "crosshair",
@@ -17,29 +18,30 @@ export const imageTool: ToolHandler = {
         return;
       }
 
-      // 读取为 dataURL
       const reader = new FileReader();
       reader.onload = async () => {
         const src = reader.result as string;
 
-        // 为了获取图片的原始尺寸，创建 Image 对象
+        // 为了获取图片的自然尺寸，创建一个Image对象
         const img = new Image();
         img.onload = () => {
           const naturalSize = { width: img.naturalWidth, height: img.naturalHeight };
 
-          // 调用 editor API 添加图片
+          // 调用 editor API 来添加图片
           const id = ctx.editor.addImage({
             src,
             naturalSize,
-            size: naturalSize, // 默认显示尺寸为原始尺寸
-            filters: [], // 可以选择添加滤镜
+            size: naturalSize, // 默认显示尺寸为自然尺寸
+            filters: [],
           });
 
-          // 将图片放在用户点击的位置
+          // 将图片置于点击的坐标
           ctx.editor.transformElement(id, { x: point.x, y: point.y });
 
-          // 选中图片并切换到选择工具
+          // 选中并切回选择工具
           ctx.editor.setSelection([id]);
+
+          // 切换工具为选择工具
           ctx.setTool("select");
 
           input.remove(); // 清理 input 元素
@@ -50,7 +52,7 @@ export const imageTool: ToolHandler = {
           ctx.setTool("select");
         };
 
-        img.src = src; // 触发图片加载
+        img.src = src;
       };
 
       reader.onerror = () => {
@@ -62,6 +64,6 @@ export const imageTool: ToolHandler = {
     };
 
     document.body.appendChild(input);
-    input.click(); // 自动触发文件选择框
+    input.click();
   },
 };
