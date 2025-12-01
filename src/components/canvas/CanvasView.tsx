@@ -356,9 +356,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         />
 
         {/* 渲染工具栏时确保有有效的元素 */}
-        {selection.selectedIds.length === 1 && document.elements[selection.selectedIds[0]] && (
+        {selection.selectedIds.length > 0 && (
           <ElementToolbar
             element={document.elements[selection.selectedIds[0]]}
+            elements={selection.selectedIds.map(id => document.elements[id]).filter(Boolean) as CanvasElement[]}
             onUpdateElement={handleUpdateElement}
           />
         )}

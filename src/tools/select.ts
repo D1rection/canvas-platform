@@ -81,8 +81,26 @@ function removeContextMenu(menu: HTMLElement | null) {
  */
 export const selectTool: ToolHandler = {
   cursor: "default",
-  onElementPointerDown: (ctx, id) => {
-    ctx.editor.setSelection([id]);
+  onElementPointerDown: (ctx, id, ev) => {
+    const state = ctx.editor.getState();
+    const currentSelection = [...state.selection.selectedIds];
+    
+    // 如果按住 Ctrl/Cmd 键，添加/移除元素到/从选区
+    if (ev.ctrlKey || ev.metaKey) {
+      // 检查元素是否已经在选区中
+      const index = currentSelection.indexOf(id);
+      if (index >= 0) {
+        // 如果元素已经在选区中，移除它
+        currentSelection.splice(index, 1);
+      } else {
+        // 否则，添加元素到选区
+        currentSelection.push(id);
+      }
+      ctx.editor.setSelection(currentSelection);
+    } else {
+      // 否则，只选择当前元素
+      ctx.editor.setSelection([id]);
+    }
   },
 
   onCanvasPointerDown: (ctx, point) => {
