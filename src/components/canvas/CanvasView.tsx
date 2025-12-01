@@ -53,7 +53,7 @@ interface CanvasViewProps {
   /** 旋转控制点鼠标点击 */
   onRotateHandlePointerDown?: (
     id: ID | undefined,
-    e: React.PointerEvent<HTMLElement>
+    e: React.PointerEvent<Element>
   ) => void;
 }
 
@@ -252,10 +252,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   // 处理旋转控制点的指针按下事件
-  const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent) => {
+  const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent<Element>) => {
     // 使用旋转工具处理旋转控制点的点击事件
     if (rotateTool.current) {
-      rotateTool.current.handleRotateHandlePointerDown(id, e);
+      rotateTool.current.handleRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
     }
     
     // 通知外部处理旋转开始
