@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ColorPicker } from "./ColorPicker";
 import { BorderColorPicker } from "./BorderColorPicker"; // 引入边框颜色选择器
-import { SizeControl } from "./SizeControl";
 import { OpacitySlider } from "./OpacitySlider";
 import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
 import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控制
@@ -227,8 +226,7 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
       {/* 边框颜色选择器 */}
       <BorderColorPicker element={element} onUpdateElement={onUpdateElement} />
 
-      {/* 大小调节区域 */}
-      <SizeControl element={element} onUpdateElement={onUpdateElement} />
+
 
       {/* 边框宽度控制 */}
       <BorderWidthControl element={element} onUpdateElement={onUpdateElement} />

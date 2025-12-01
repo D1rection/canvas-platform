@@ -55,7 +55,7 @@ interface CanvasViewProps {
   /** 旋转控制点鼠标点击 */
   onRotateHandlePointerDown?: (
     id: ID | undefined,
-    e: React.PointerEvent<HTMLElement>
+    e: React.PointerEvent<Element>
   ) => void;
   
   /** 缩放控制点鼠标点击 */

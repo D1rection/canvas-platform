@@ -1,5 +1,5 @@
 // BorderWidthControl.tsx
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import type { ID, CanvasElement } from "../../canvas/schema/model";
 import { 
   getElementBorderWidth, 
@@ -20,8 +20,9 @@ export const BorderWidthControl: React.FC<BorderWidthControlProps> = ({
 }) => {
   const currentWidth = getElementBorderWidth(element);
   const [localWidth, setLocalWidth] = useState(currentWidth);
-  // 移除未使用的 isDragging 状态
-  // const [isDragging, setIsDragging] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const sliderRef = useRef<HTMLInputElement>(null);
 
   // 更新边框宽度
   const updateBorderWidth = (width: number) => {
@@ -55,19 +56,74 @@ export const BorderWidthControl: React.FC<BorderWidthControlProps> = ({
     updateBorderWidth(value);
   };
 
-  // 移除未使用的拖拽处理函数
-  // 处理滑块拖拽开始/结束
-  // const handleDragStart = () => {
-  //   setIsDragging(true);
-  // };
+  // 处理鼠标滚轮事件 - 已禁用鼠标滚轮控制功能
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    // 仅阻止默认行为，不执行任何控制逻辑
+    e.preventDefault();
+  };
+
+  // 处理键盘事件
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 只有当滑块有焦点时才处理键盘导航
+    if (!isFocused) return;
+
+    let delta = 0;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        delta = -1;
+        break;
+      case 'ArrowRight':
+        delta = 1;
+        break;
+      case 'ArrowDown':
+        delta = -2;
+        break;
+      case 'ArrowUp':
+        delta = 2;
+        break;
+      default:
+        return;
+    }
+
+    const newValue = localWidth + delta;
+    updateBorderWidth(newValue);
+    
+    // 对于箭头键，我们阻止默认行为以避免页面滚动
+    e.preventDefault();
+  };
+
+  // 处理焦点事件
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    setIsDragging(false);
+  };
+
+  // 处理拖拽开始/结束
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
   
-  // const handleDragEnd = () => {
-  //   setIsDragging(false);
-  // };
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
 
   // 阻止所有事件冒泡到工具栏
   const handleEventStopPropagation = (e: React.SyntheticEvent) => {
     e.stopPropagation();
+  };
+
+  // 增加视觉反馈的样式类
+  const getSliderClassName = () => {
+    return [
+      styles.borderWidthSlider,
+      isFocused && styles.borderWidthSliderFocused,
+      isDragging && styles.borderWidthSliderDragging
+    ].filter(Boolean).join(' ');
   };
 
   return (
@@ -96,17 +152,32 @@ export const BorderWidthControl: React.FC<BorderWidthControlProps> = ({
       </div>
       
       <input
+        ref={sliderRef}
         type="range"
         min="1"
         max="20"
         value={localWidth}
         onChange={handleSliderChange}
-        onMouseDown={handleEventStopPropagation}
-        onTouchStart={handleEventStopPropagation}
-        onClick={handleEventStopPropagation}
+        onWheel={handleWheel}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onMouseDown={(e) => {
+          handleEventStopPropagation(e);
+          handleDragStart();
+        }}
+        onMouseUp={handleDragEnd}
+        onTouchStart={(e) => {
+          handleEventStopPropagation(e);
+          handleDragStart();
+        }}
+        onTouchEnd={handleDragEnd}
         onPointerDown={handleEventStopPropagation}
-        className={styles.borderWidthSlider}
+        className={getSliderClassName()}
         data-toolbar-element="true"
+        data-dragging={isDragging}
+        tabIndex={0}
+        aria-label={`边框宽度: ${localWidth}px`}
       />
       
       <div className={styles.borderWidthPreview}>
