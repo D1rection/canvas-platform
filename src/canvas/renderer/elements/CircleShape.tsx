@@ -20,12 +20,10 @@ export const CircleShape: React.FC<CircleShapeProps> = React.memo(({
   scale,
   onPointerDown,
   isSelected,
-  isHovered: externalHovered
 }) => {
   const { transform, size, style } = element;
-  // 使用内部状态管理hover，但优先使用外部传入的hover状态
-  const [internalIsHovered, setInternalIsHovered] = useState(false);
-  const isHovered = externalHovered !== undefined ? externalHovered : internalIsHovered;
+  
+  const [isHovered, setIsHovered] = useState(false);
   
   const left = (transform.x - viewport.x) * scale;
   const top = (transform.y - viewport.y) * scale;
@@ -41,8 +39,8 @@ export const CircleShape: React.FC<CircleShapeProps> = React.memo(({
     <div
       data-id={element.id}
       onPointerDown={onPointerDown}
-      onPointerEnter={() => setInternalIsHovered(true)}
-      onPointerLeave={() => setInternalIsHovered(false)}
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
       style={{
         position: "absolute",
         left,
