@@ -110,9 +110,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         >
           {/* 预设颜色网格 */}
           <div className={styles.colorPresets}>
-            {COLOR_PRESETS.map((color) => (
+            {COLOR_PRESETS.map((color, index) => (
               <button
-                key={color}
+                key={`${color}-${index}`}
                 className={styles.colorOption}
                 onClick={(e) => handleColorSelect(color, e)}
                 style={{

@@ -49,6 +49,7 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
         overflow: "visible",
         pointerEvents: "visiblePainted",
         clipPath: "polygon(50% 0, 0 100%, 100% 100%)",
+        opacity: element.opacity ?? 1,
       }}
     >
       {/* 主体三角形：填充 + 基础描边（选中态可复用 style.strokeColor） */}
@@ -57,6 +58,7 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
         fill={style.fill}
         stroke={style.strokeColor}
         strokeWidth={2 * style.strokeWidth * scale}
+        fillOpacity={element.opacity ?? 1}
       />
       {/* Hover 高亮：沿三角边绘制一层额外描边，仅在 hover 且未选中时显示 */}
       {isHovered && !isSelected && (
@@ -65,6 +67,7 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
           fill="none"
           stroke="#5da500d8"
           strokeWidth={hoverStrokeWidth}
+          opacity={element.opacity ?? 1}
         />
       )}
     </svg>

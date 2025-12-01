@@ -56,9 +56,9 @@ export const BorderColorPicker: React.FC<BorderColorPickerProps> = ({
         <div className={styles.colorPickerDropdown}>
           {/* 预设颜色 */}
           <div className={styles.colorPresets}>
-            {COLOR_PRESETS.map((color) => (
+            {COLOR_PRESETS.map((color, index) => (
               <button
-                key={color}
+                key={`${color}-${index}`}
                 className={styles.colorOption}
                 style={{ backgroundColor: color }}
                 onClick={() => handleColorSelect(color)}
