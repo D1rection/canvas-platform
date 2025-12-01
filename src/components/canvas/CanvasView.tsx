@@ -310,8 +310,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
     
     // 通知外部处理缩放开始
-    if (onScaleHandlePointerDown) {
-      onScaleHandlePointerDown(id, direction, e as React.PointerEvent<HTMLElement>);
+    if (handleScaleHandlePointerDown) {
+      handleScaleHandlePointerDown(id, direction, e as React.PointerEvent<HTMLElement>);
     }
   };
 
