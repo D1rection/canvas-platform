@@ -144,23 +144,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
   }, [document, viewport, onUpdateElement, styles.root]);
   
-  // 初始化旋转工具
-  useEffect(() => {
-    rotateTool.current = new RotateTool(
-      onUpdateElement,
-      documentRef,
-      viewportRef,
-      { root: styles.root }
-    );
-    
-    // 清理函数
-    return () => {
-      // 可以在这里添加清理旋转工具的代码
-    };
-  }, []);
+  // 移除了冗余的旋转工具初始化useEffect
+  // 旋转工具已经在上面的useEffect中初始化和更新
 
   const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
-    if (!id || !document.elements[id]) {
+    if (!id) {
       return;
     }
 
@@ -303,18 +291,16 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    // 如果正在旋转，不执行正常的画布松开处理
-    if (rotateTool.current && rotateTool.current.isRotating()) return;
-    
-    if (!onCanvasPointerUp) return;
-    if (isDragging) setIsDragging(false);
-    
     // 通知拖拽工具处理指针抬起事件
     if (dragTool.current) {
       dragTool.current.handlePointerUp();
     }
     
-    // 旋转工具没有handlePointerUp方法，这里省略
+    // 如果正在旋转，不执行正常的画布松开处理
+    if (rotateTool.current && rotateTool.current.isRotating()) return;
+    
+    if (!onCanvasPointerUp) return;
+    if (isDragging) setIsDragging(false);
     
     const point = screenToWorld(e);
     onCanvasPointerUp(point, e);
