@@ -54,6 +54,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       selectedIds: [],
     },
     clipboard: null,
+    marqueeSelection: null,
   };
 
   /**
@@ -812,6 +813,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       viewport: persisted.viewport ?? { x: 0, y: 0, scale: 1 },
       selection: { selectedIds: [] },
       clipboard: null,
+      marqueeSelection: null,
     };
 
     // 直接赋值
@@ -837,6 +839,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         viewport: { x: 0, y: 0, scale: 1 },
         selection: { selectedIds: [] },
         clipboard: null,
+        marqueeSelection: null,
       };
       notify();
 
@@ -887,6 +890,126 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     return false;
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // 框选相关
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 开始框选操作
+   * @param _startPoint 框选的起始点（场景坐标）
+   */
+  const startMarqueeSelection: IEditorService["startMarqueeSelection"] = (_startPoint: Point) => {
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      marqueeSelection: {
+        startPoint: _startPoint,
+        endPoint: _startPoint,
+      },
+    };
+    setState(nextState, { persist: false });
+  };
+
+  /**
+   * 更新框选操作
+   * @param _currentPoint 框选的当前点（场景坐标）
+   */
+  const updateMarqueeSelection: IEditorService["updateMarqueeSelection"] = (_currentPoint: Point) => {
+    if (!state.marqueeSelection) {
+      console.warn('[MarqueeSelection] No active marquee selection to update');
+      return;
+    }
+
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      marqueeSelection: {
+        ...state.marqueeSelection,
+        endPoint: _currentPoint,
+      },
+    };
+    setState(nextState, { persist: false });
+  };
+
+  /**
+   * 完成框选操作，并根据框选范围选中相交的元素
+   * @param _endPoint 框选的结束点（场景坐标）
+   * @returns 选中的元素ID数组
+   */
+  const finishMarqueeSelection: IEditorService["finishMarqueeSelection"] = (_endPoint: Point) => {
+    if (!state.marqueeSelection) {
+      // console.warn('[MarqueeSelection] No active marquee selection to finish');
+      return [];
+    }
+
+    // 计算框选矩形
+    const marqueeRect = {
+      x: Math.min(state.marqueeSelection.startPoint.x, _endPoint.x),
+      y: Math.min(state.marqueeSelection.startPoint.y, _endPoint.y),
+      width: Math.abs(_endPoint.x - state.marqueeSelection.startPoint.x),
+      height: Math.abs(_endPoint.y - state.marqueeSelection.startPoint.y),
+    };
+
+    // 最小框选阈值
+    if (marqueeRect.width < 5 || marqueeRect.height < 5) {
+      const nextState = { ...state, marqueeSelection: null };
+      setState(nextState, { persist: false });
+      return [];
+    }
+
+    // 查找相交的元素
+    const selectedIds: ID[] = [];
+    for (const elementId of state.document.rootElementIds) {
+      const element = state.document.elements[elementId];
+      if (!element || !element.visible) continue;
+
+      // 只处理有尺寸的元素（如图形元素）
+      if ("size" in element) {
+        const elementRect = {
+          x: element.transform.x,
+          y: element.transform.y,
+          width: element.size.width,
+          height: element.size.height,
+        };
+
+        // 使用分离轴定理检测相交
+        if (
+          !(elementRect.x > marqueeRect.x + marqueeRect.width ||
+            elementRect.x + elementRect.width < marqueeRect.x ||
+            elementRect.y > marqueeRect.y + marqueeRect.height ||
+            elementRect.y + elementRect.height < marqueeRect.y)
+        ) {
+          selectedIds.push(elementId);
+        }
+      }
+    }
+
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      selection: {
+        ...state.selection,
+        selectedIds,
+      },
+      marqueeSelection: null,
+    };
+    setState(nextState, { persist: false });
+
+    return selectedIds;
+  };
+
+  /**
+   * 取消框选操作
+   */
+  const cancelMarqueeSelection: IEditorService["cancelMarqueeSelection"] = () => {
+    if (!state.marqueeSelection) {
+      return;
+    }
+
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      marqueeSelection: null,
+    };
+    setState(nextState, { persist: false });
+  };
+
   return {
     getState,
     subscribe,
@@ -918,5 +1041,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     redo,
     canUndo,
     canRedo,
+    startMarqueeSelection,
+    updateMarqueeSelection,
+    finishMarqueeSelection,
+    cancelMarqueeSelection,
   };
 }

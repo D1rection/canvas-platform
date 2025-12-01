@@ -435,7 +435,7 @@ export interface SelectionState {
  * 画布运行时状态
  *
  * - 组合了持久化的文档数据与非持久化的 UI 状态
- * - 一般作为画布编辑器的全局状态源（例如 Zustand 等）
+ * - 一般作为画布编辑器的全局状态源
  */
 export interface CanvasRuntimeState {
   /** 当前编辑的文档（可持久化） */
@@ -450,6 +450,11 @@ export interface CanvasRuntimeState {
   clipboard: {
     elements: CanvasElement[];
     copiedAt: number; // 时间戳
+  } | null;
+  /** 当前框选状态 */
+  marqueeSelection: {
+    startPoint: Point;
+    endPoint: Point;
   } | null;
 }
 

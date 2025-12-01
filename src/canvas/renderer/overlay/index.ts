@@ -4,9 +4,9 @@
  */
 export { SelectionBox } from "./SelectionBox";
 export { SelectionOverlay } from "./SelectionOverlay";
+export { MultiSelectionBox } from "./MultiSelectionBox";
 
 // TODO: 后续添加
 // export { HoverOverlay } from "./HoverOverlay";
 // export { DragPreview } from "./DragPreview";
 // export { AlignmentGuides } from "./AlignmentGuides";
-

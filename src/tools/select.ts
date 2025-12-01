@@ -1,4 +1,3 @@
-import type { ID } from "../canvas/schema/model";
 import type { ToolHandler } from "./types";
 
 /**
@@ -78,7 +77,7 @@ function removeContextMenu(menu: HTMLElement | null) {
  * 选择工具
  *
  * - 点击元素：选中该元素
- * - 点击画布空白：清空选区（可选）
+ * - 点击画布空白：清空选区
  */
 export const selectTool: ToolHandler = {
   cursor: "default",
@@ -86,44 +85,24 @@ export const selectTool: ToolHandler = {
     ctx.editor.setSelection([id]);
   },
 
-  onCanvasPointerDown: (ctx) => {
+  onCanvasPointerDown: (ctx, point) => {
     // 点击空白区域时清空选区
-    ctx.editor.resetSelection();
+    const state = ctx.editor.getState();
+    if(state.selection.selectedIds.length > 0) {
+      ctx.editor.resetSelection();
+    }
+    // 框选区域起始
+    ctx.editor.startMarqueeSelection(point);
   },
 
   onCanvasPointerMove: (ctx, point, _ev) => {
-    const state = ctx.editor.getState();
-    const { document, selection } = state;
-    const { rootElementIds, elements } = document;
-
-    let hovered: ID | null = null;
-
-    // 从上往下遍历
-    for (let i = rootElementIds.length - 1; i >= 0; i--) {
-      const id = rootElementIds[i];
-      const element = elements[id];
-      if (!element || !("size" in element)) continue;
-
-      const shape = element;
-      if (!shape.visible) continue;
-
-      const { x, y } = shape.transform;
-      const { width, height } = shape.size;
-
-      if (
-        point.x >= x &&
-        point.x <= x + width &&
-        point.y >= y &&
-        point.y <= y + height
-      ) {
-        hovered = id;
-        break;
-      }
+    if(ctx.editor.getState().marqueeSelection?.startPoint) {
+      ctx.editor.updateMarqueeSelection(point);
     }
+  },
 
-    if (hovered !== (selection.hoveredId ?? null)) {
-      ctx.editor.setHovered(hovered);
-    }
+  onCanvasPointerUp: (ctx, point) => {
+    ctx.editor.finishMarqueeSelection(point);
   },
 
   onKeyDown: (ctx, ev) => {

@@ -368,4 +368,35 @@ export interface IEditorService {
    * 是否可以重做。
    */
   canRedo(): boolean;
+
+  // ─────────────────────────────────────────────────────────────
+  // 框选相关
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * 开始框选操作。
+   *
+   * @param startPoint 框选的起始点（场景坐标）
+   */
+  startMarqueeSelection(startPoint: Point): void;
+
+  /**
+   * 更新框选操作。
+   *
+   * @param currentPoint 框选的当前点（场景坐标）
+   */
+  updateMarqueeSelection(currentPoint: Point): void;
+
+  /**
+   * 完成框选操作，并根据框选范围选中相交的元素。
+   *
+   * @param endPoint 框选的结束点（场景坐标）
+   * @returns 选中的元素ID数组
+   */
+  finishMarqueeSelection(endPoint: Point): ID[];
+
+  /**
+   * 取消框选操作。
+   */
+  cancelMarqueeSelection(): void;
 }

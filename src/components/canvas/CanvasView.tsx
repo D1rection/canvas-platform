@@ -15,6 +15,7 @@ import {
 } from "../../canvas/renderer";
 import { ElementToolbar } from "../ElementToolbar";
 import styles from "./CanvasView.module.css";
+import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 
 interface CanvasViewProps {
   state: CanvasRuntimeState;
@@ -71,6 +72,30 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
 
+  // 方案D：增强的状态同步监控
+  useEffect(() => {
+    console.log("=== State Sync Monitor ===");
+    console.log(
+      "Document elements count:",
+      Object.keys(document.elements).length
+    );
+    console.log("Selected IDs:", selection.selectedIds);
+
+    // 检查每个选中的元素是否仍然存在
+    selection.selectedIds.forEach((selectedId) => {
+      const elementExists = !!document.elements[selectedId];
+      console.log(`Element ${selectedId} exists:`, elementExists);
+
+      if (!elementExists) {
+        console.error(
+          `CRITICAL: Selected element ${selectedId} not found in document!`
+        );
+        // 这里可以记录错误或触发恢复逻辑
+      }
+    });
+  }, [document.elements, selection.selectedIds]);
+
+  // 是否正在拖拽画布
   const [isDragging, setIsDragging] = useState(false);
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = useRef<HTMLDivElement | null>(null);
@@ -252,6 +277,15 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             onUpdateElement={handleUpdateElement}
           />
         )}
+        {state.marqueeSelection && (
+          <MarqueeSelectionBox
+            startPoint={state.marqueeSelection.startPoint}
+            endPoint={state.marqueeSelection.endPoint}
+            viewport={viewport}
+          />
+        )}
+
+        {/* 后续可在此添加：HoverOverlay / DragPreview / AlignmentGuides 等 */}
       </div>
     </div>
   );
