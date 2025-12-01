@@ -19,7 +19,7 @@ export const ImageElement: React.FC<{
   const screenW = size.width * scale * transform.scaleX;
   const screenH = size.height * scale * transform.scaleY;
 
-  const filterCSS = filters?.map(f => `${f.id}(${f.value})`).join(" ") ?? "none";
+  const filterCSS = filters?.map(f => `${f.type}(${f.value})`).join(" ") ?? "none";
 
   return (
     <img

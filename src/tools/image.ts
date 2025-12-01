@@ -1,5 +1,5 @@
 import type { ToolHandler } from "./types";
-import type { ImageElement } from "../canvas/schema/model";
+// 移除未使用的导入
 
 export const imageTool: ToolHandler = {
   cursor: "crosshair",

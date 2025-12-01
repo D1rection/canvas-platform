@@ -18,6 +18,7 @@ import { ElementToolbar } from "../ElementToolbar";
 import styles from "./CanvasView.module.css";
 import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 import { RotateTool } from "../../canvas/tools/RotateTool";
+import { DragTool } from "../../canvas/tools/DragTool";
 
 interface CanvasViewProps {
   state: CanvasRuntimeState;
@@ -111,19 +112,34 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const viewportRef = useRef(viewport);
   // 旋转工具实例
   const rotateTool = useRef<RotateTool | null>(null);
+  // 拖拽工具实例
+  const dragTool = useRef<DragTool | null>(null);
 
   // 更新document和viewport的ref，以便在事件处理函数中使用最新的值
   useEffect(() => {
     documentRef.current = document;
     viewportRef.current = viewport;
     
-    // 更新旋转工具的依赖项
-    if (rotateTool.current) {
+    // 初始化或更新旋转工具
+    if (!rotateTool.current) {
+      rotateTool.current = new RotateTool(onUpdateElement, documentRef, viewportRef, { root: styles.root });
+    } else {
       rotateTool.current.updateDependencies(
         onUpdateElement,
         documentRef,
         viewportRef,
         { root: styles.root }
+      );
+    }
+    
+    // 初始化或更新拖拽工具
+    if (!dragTool.current) {
+      dragTool.current = new DragTool(onUpdateElement, documentRef, viewportRef);
+    } else {
+      dragTool.current.updateDependencies(
+        onUpdateElement,
+        documentRef,
+        viewportRef
       );
     }
   }, [document, viewport, onUpdateElement, styles.root]);
@@ -156,6 +172,12 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const handleShapePointerDown = React.useCallback(
     (id: string, e: React.PointerEvent<HTMLDivElement>) => {
       if (!isDragging && cursor === "grab") setIsDragging(true);
+      
+      // 使用拖拽工具处理元素拖拽
+      if (dragTool.current) {
+        dragTool.current.handleElementPointerDown(id, e);
+      }
+      
       onElementPointerDown?.(id, e);
       e.stopPropagation();
     },
@@ -252,19 +274,26 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   // 处理旋转控制点的指针按下事件
-  const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent) => {
+  const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent<Element>) => {
     // 使用旋转工具处理旋转控制点的点击事件
     if (rotateTool.current) {
-      rotateTool.current.handleRotateHandlePointerDown(id, e);
+      // 进行类型断言以匹配rotateTool的期望类型
+      rotateTool.current.handleRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
     }
     
     // 通知外部处理旋转开始
     if (onRotateHandlePointerDown) {
-      onRotateHandlePointerDown(id, e);
+      onRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
     }
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // 如果正在拖拽，使用拖拽工具处理
+    if (dragTool.current && dragTool.current.isDragging()) {
+      dragTool.current.handlePointerMove(e.clientX, e.clientY);
+      return;
+    }
+    
     // 如果正在旋转，不执行正常的画布移动处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
     
@@ -279,6 +308,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     
     if (!onCanvasPointerUp) return;
     if (isDragging) setIsDragging(false);
+    
+    // 通知拖拽工具处理指针抬起事件
+    if (dragTool.current) {
+      dragTool.current.handlePointerUp();
+    }
+    
+    // 旋转工具没有handlePointerUp方法，这里省略
+    
     const point = screenToWorld(e);
     onCanvasPointerUp(point, e);
   };
