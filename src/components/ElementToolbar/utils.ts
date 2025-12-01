@@ -5,7 +5,7 @@ import type {
   CanvasElement,
   ShapeElement,
   TextElement,
-  ImageElement,
+  // ImageElement,
   // ID,
   // Point,
   // Size,
@@ -49,15 +49,7 @@ export const isTextElement = (
   return element.type === "text";
 };
 
-/**
- * 类型守卫：判断是否为图片或形状元素（可调整尺寸）
- * **[修复：添加 export]**
- */
-export const isSizableElement = (
-  element: CanvasElement
-): element is ShapeElement | ImageElement => {
-  return element.type === "shape" || element.type === "image";
-};
+
 
 // --- Color Helpers 颜色辅助函数 ---
 
@@ -107,136 +99,7 @@ export const setElementColor = (
   return {};
 };
 
-// --- Size Helpers 尺寸辅助函数 ---
 
-/**
- * 获取元素的尺寸信息
- * @returns 包含宽度和高度的对象
- */
-export const getElementSize = (
-  element: CanvasElement
-): { width: number; height: number } => {
-  if (isSizableElement(element) && element.size) {
-    return {
-      width: element.size.width || 0,
-      height: element.size.height || 0,
-    };
-  }
-
-  if (isTextElement(element) && element.spans.length > 0) {
-    // 文本元素返回字体大小作为高度，宽度为0 (仅用于显示)
-    const fontSize = element.spans[0]?.style.fontSize || 16;
-    return { width: 0, height: fontSize };
-  }
-
-  return { width: 0, height: 0 };
-};
-
-/**
- * 设置元素的精确尺寸信息
- * @param element 画布元素
- * @param width 宽度
- * @param height 高度
- * @returns 包含尺寸更新的对象
- */
-export const setElementDimensions = (
-  element: CanvasElement,
-  newWidth: number,
-  newHeight: number
-): Partial<CanvasElement> => {
-  // 最小尺寸限制
-  const minSize = 1;
-
-  if (isSizableElement(element) && element.size) {
-    // 形状/图片元素
-    return {
-      size: {
-        width: Math.max(minSize, newWidth),
-        height: Math.max(minSize, newHeight),
-      },
-    };
-  } else if (isTextElement(element) && element.spans.length > 0) {
-    // 文本元素：尺寸调整为字体大小
-    // 文本元素使用 height 作为 fontSize 的输入
-    const clampedSize = Math.max(minSize, newHeight);
-
-    return {
-      spans: element.spans.map((span) => ({
-        ...span,
-        style: { ...span.style, fontSize: clampedSize },
-      })),
-    };
-  }
-
-  return {};
-};
-
-/**
- * 设置元素的尺寸信息 (用于滑块)
- * @param element 画布元素
- * @param sliderValue 滑块值 (1-500)
- * @returns 包含尺寸更新的对象
- */
-export const setElementSizeFromSlider = (
-  element: CanvasElement,
-  sliderValue: number
-): Partial<CanvasElement> => {
-  const clampedSize = Math.max(1, sliderValue);
-  const minSize = 1;
-
-  if (isTextElement(element) && element.spans.length > 0) {
-    // 文本元素：滑块值直接对应字体大小
-    return {
-      spans: element.spans.map((span) => ({
-        ...span,
-        style: { ...span.style, fontSize: clampedSize },
-      })),
-    };
-  } else if (isSizableElement(element) && element.size) {
-    // 形状/图片元素：保持宽高比
-    const { width: currentWidth, height: currentHeight } = element.size;
-
-    // 如果是第一次设置尺寸（宽度或高度为0），则默认设置为滑块值
-    if (currentWidth === 0 || currentHeight === 0) {
-      return {
-        size: {
-          width: clampedSize,
-          height: clampedSize,
-        },
-      };
-    }
-
-    // 使用当前尺寸计算宽高比
-    const aspectRatio = currentWidth / currentHeight;
-
-    // 假设滑块值对应于新宽度
-    const newWidth = clampedSize;
-    const newHeight = newWidth / aspectRatio; // 使用新宽度和旧比例计算新高度
-
-    return {
-      size: {
-        width: Math.max(minSize, newWidth),
-        height: Math.max(minSize, newHeight),
-      },
-    };
-  }
-
-  return {};
-};
-
-/**
- * 获取元素尺寸滑块的值
- */
-export const getElementSizeSliderValue = (element: CanvasElement): number => {
-  if (isTextElement(element) && element.spans.length > 0) {
-    return element.spans[0]?.style.fontSize || 16;
-  }
-  if (isSizableElement(element) && element.size) {
-    // 形状/图片元素返回宽度作为滑块的统一尺寸度量
-    return Math.round(element.size.width);
-  }
-  return 50;
-};
 
 // --- Opacity Helpers 透明度辅助函数 ---
 
