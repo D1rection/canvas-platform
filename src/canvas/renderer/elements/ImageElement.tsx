@@ -23,6 +23,7 @@ export const ImageElement: React.FC<{
 
   return (
     <img
+      data-id={element.id}
       src={src}
       alt=""
       style={{

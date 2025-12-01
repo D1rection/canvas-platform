@@ -117,6 +117,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
 
   return (
     <div
+      data-selection-box="single"
       style={{
         position: "absolute",
         left,

@@ -17,7 +17,6 @@ import { ElementToolbar } from "../ElementToolbar";
 import styles from "./CanvasView.module.css";
 import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 import { RotateTool } from "../../canvas/tools/RotateTool";
-import { DragTool } from "../../canvas/tools/DragTool";
 import { ScaleTool, ScaleDirection } from "../../canvas/tools/ScaleTool";
 
 interface CanvasViewProps {
@@ -63,6 +62,15 @@ interface CanvasViewProps {
     direction: number,
     e: React.PointerEvent<HTMLElement>
   ) => void;
+  /** 选中框鼠标点击 */
+  onSelectionBoxPointerDown?: (
+    selectedIds: ID[],
+    e: React.PointerEvent<Element>
+  ) => void;
+  /** 注册元素层 DOM 引用回调 */
+  onRegisterElementsLayerRef?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+  /** 注册覆盖层 DOM 引用回调 */
+  onRegisterOverlayLayerRef?: (ref: React.RefObject<HTMLDivElement | null>) => void;
 }
 
 /**
@@ -85,6 +93,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   onWheel,
   onRotateHandlePointerDown,
   onScaleHandlePointerDown,
+  onSelectionBoxPointerDown,
+  onRegisterElementsLayerRef,
+  onRegisterOverlayLayerRef,
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
@@ -120,8 +131,6 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const viewportRef = useRef(viewport);
   // 旋转工具实例
   const rotateTool = useRef<RotateTool | null>(null);
-  // 拖拽工具实例
-  const dragTool = useRef<DragTool | null>(null);
   // 缩放工具实例
   const scaleTool = useRef<ScaleTool | null>(null);
 
@@ -139,17 +148,6 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         documentRef,
         viewportRef,
         { root: styles.root }
-      );
-    }
-    
-    // 初始化或更新拖拽工具
-    if (!dragTool.current) {
-      dragTool.current = new DragTool(onUpdateElement, documentRef, viewportRef);
-    } else {
-      dragTool.current.updateDependencies(
-        onUpdateElement,
-        documentRef,
-        viewportRef
       );
     }
     
@@ -183,19 +181,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
       if (!isDragging && cursor === "grab") {
         setIsDragging(true);
-      } else if (cursor !== "grab") {
-        // 只有在非画布拖拽模式下才使用元素拖拽工具
-        if (dragTool.current) {
-          // 如果有多个选中的元素，传递所有选中的元素ID
-          const selectedIds = selection.selectedIds.length > 0 ? selection.selectedIds : [id];
-          dragTool.current.handleElementPointerDown(id, e, selectedIds);
-        }
       }
-      
       onElementPointerDown?.(id, e);
       e.stopPropagation();
     },
-    [isDragging, cursor, onElementPointerDown, selection.selectedIds]
+    [isDragging, cursor, onElementPointerDown]
   );
 
   const renderElement = React.useCallback(
@@ -316,38 +306,27 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    // 如果正在拖拽，使用拖拽工具处理
-    if (dragTool.current && dragTool.current.isDragging()) {
-      dragTool.current.handlePointerMove(e.clientX, e.clientY);
-      return;
-    }
-    
     // 如果正在旋转，不执行正常的画布移动处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
-    
+
     // 如果正在缩放，不执行正常的画布移动处理
     if (scaleTool.current && scaleTool.current.isScaling()) return;
-    
+
     if (!onCanvasPointerMove) return;
     const point = screenToWorld(e);
     onCanvasPointerMove(point, e);
   };
 
   const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    // 通知拖拽工具处理指针抬起事件
-    if (dragTool.current) {
-      dragTool.current.handlePointerUp();
-    }
-    
     // 如果正在旋转，不执行正常的画布松开处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
-    
+
     // 如果正在缩放，不执行正常的画布松开处理
     if (scaleTool.current && scaleTool.current.isScaling()) return;
-    
+
     if (!onCanvasPointerUp) return;
     if (isDragging) setIsDragging(false);
-    
+
     const point = screenToWorld(e);
     onCanvasPointerUp(point, e);
   };
@@ -384,6 +363,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     });
   }, [onRegisterPanPreview]);
 
+  // 注册元素层 DOM 引用
+  useEffect(() => {
+    if (onRegisterElementsLayerRef) {
+      onRegisterElementsLayerRef(elementsLayerRef);
+    }
+  }, [onRegisterElementsLayerRef]);
+
+  // 注册覆盖层 DOM 引用
+  useEffect(() => {
+    if (onRegisterOverlayLayerRef) {
+      onRegisterOverlayLayerRef(overlayLayerRef);
+    }
+  }, [onRegisterOverlayLayerRef]);
+
   return (
     <div
       className={styles.root}
@@ -405,15 +398,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           onRotateHandlePointerDown={handleRotateHandlePointerDown}
           onScaleHandlePointerDown={handleScaleHandlePointerDown}
           onSelectionBoxPointerDown={(e) => {
-            // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
-            if (cursor !== "grab" && selection.selectedIds.length > 0 && dragTool.current) {
-              // 只有在非画布拖拽模式下，才使用元素拖拽工具
-              // 使用第一个选中的元素作为主ID，但传递所有选中的ID
-              const mainId = selection.selectedIds[0];
-              dragTool.current.handleElementPointerDown(mainId, e as React.PointerEvent<HTMLDivElement>, selection.selectedIds);
+            // 调用父组件的选中框拖拽处理
+            if (onSelectionBoxPointerDown) {
+              onSelectionBoxPointerDown(selection.selectedIds, e);
+            } else {
               e.stopPropagation();
-          }
-        }}
+            }
+          }}
       />
 
         {selection.selectedIds.length === 1 && (

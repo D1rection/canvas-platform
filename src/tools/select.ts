@@ -1,4 +1,28 @@
-import type { ToolHandler } from "./types";
+import type { ToolHandler, ToolContext } from "./types";
+import type { ID } from "../canvas/schema/model";
+import { DragTool } from "../canvas/tools/DragTool";
+
+// 创建选择工具专用的拖拽工具实例
+const dragTool = new DragTool();
+
+/**
+ * 初始化选择工具的拖拽依赖
+ */
+export function initSelectToolDependencies(
+  updateElement: (id: string, updates: any) => void,
+  documentRef: { current: any },
+  viewportRef: { current: any },
+  elementsLayerRef?: { current: HTMLElement | null }
+) {
+  dragTool.updateDependencies(updateElement, documentRef, viewportRef, elementsLayerRef);
+}
+
+/**
+ * 检查元素是否正在被拖拽
+ */
+export function isElementBeingDragged(): boolean {
+  return dragTool.isDragging();
+}
 
 /**
  * 创建右键菜单
@@ -79,30 +103,82 @@ function removeContextMenu(menu: HTMLElement | null) {
  * - 点击元素：选中该元素
  * - 点击画布空白：清空选区
  */
+/**
+ * 统一的元素拖拽开始处理函数
+ */
+function handleElementDragStart(ctx: ToolContext, mainId: ID, elementIds: ID[], ev: PointerEvent) {
+  if (ev.button !== 0) return; // 只处理左键
+
+  // 更新拖拽工具的依赖
+  const state = ctx.editor.getState();
+  // 从 ToolContext 获取 elementsLayerRef 和 overlayLayerRef（如果已设置）
+  const elementsLayerRef = ctx.elementsLayerRef;
+  const overlayLayerRef = ctx.overlayLayerRef;
+  dragTool.updateDependencies(
+    (id: string, updates: any) => ctx.editor.updateElement(id, updates),
+    { current: state.document },
+    { current: state.viewport },
+    elementsLayerRef,
+    overlayLayerRef
+  );
+
+  // 使用 requestAnimationFrame 延迟执行，确保选中框已渲染
+  requestAnimationFrame(() => {
+    // 启动拖拽
+    dragTool.handleElementPointerDown(mainId, ev as any, elementIds);
+  });
+}
+
 export const selectTool: ToolHandler = {
   cursor: "default",
-  onElementPointerDown: (ctx, id) => {
+  onElementPointerDown: (ctx, id, ev) => {
+    if (!ev) return;
+
     ctx.editor.setSelection([id]);
+
+    // 处理元素拖拽
+    handleElementDragStart(ctx, id, [id], ev);
+  },
+
+  onSelectionBoxPointerDown: (ctx, selectedIds, ev) => {
+    // 当点击选中框时，如果有选中元素，则拖拽所有选中元素
+    if (selectedIds.length > 0) {
+      handleElementDragStart(ctx, selectedIds[0], selectedIds, ev);
+    }
   },
 
   onCanvasPointerDown: (ctx, point) => {
-    // 点击空白区域时清空选区
-    const state = ctx.editor.getState();
-    if(state.selection.selectedIds.length > 0) {
-      ctx.editor.resetSelection();
+    // 点击空白区域时清空选区（只有在不拖拽时）
+    if (!isElementBeingDragged()) {
+      const state = ctx.editor.getState();
+      if(state.selection.selectedIds.length > 0) {
+        ctx.editor.resetSelection();
+      }
+      // 框选区域起始
+      ctx.editor.startMarqueeSelection(point);
     }
-    // 框选区域起始
-    ctx.editor.startMarqueeSelection(point);
   },
 
-  onCanvasPointerMove: (ctx, point, _ev) => {
-    if(ctx.editor.getState().marqueeSelection?.startPoint) {
+  onCanvasPointerMove: (ctx, point, ev) => {
+    // 优先处理元素拖拽
+    if (isElementBeingDragged() && ev) {
+      dragTool.handlePointerMove(ev.clientX, ev.clientY);
+    }
+    // 然后处理框选
+    else if (ctx.editor.getState().marqueeSelection?.startPoint) {
       ctx.editor.updateMarqueeSelection(point);
     }
   },
 
   onCanvasPointerUp: (ctx, point) => {
-    ctx.editor.finishMarqueeSelection(point);
+    // 优先结束拖拽
+    if (isElementBeingDragged()) {
+      dragTool.handlePointerUp();
+    }
+    // 然后完成框选
+    else {
+      ctx.editor.finishMarqueeSelection(point);
+    }
   },
 
   onKeyDown: (ctx, ev) => {
