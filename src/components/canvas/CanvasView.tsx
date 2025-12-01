@@ -11,6 +11,7 @@ import {
   RectShape,
   CircleShape,
   TriangleShape,
+  ImageElement,
   SelectionOverlay,
 } from "../../canvas/renderer";
 import { ElementToolbar } from "../ElementToolbar";
@@ -120,7 +121,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   );
 
   const renderShape = React.useCallback(
-    (el: ShapeElement) => {
+    (el: any) => {
       const commonProps = {
         element: el,
         viewport: viewport as ViewportState,
@@ -142,6 +143,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           return <TriangleShape key={el.id} {...commonProps} />;
         }
       }
+      if (el.type === "image") {
+      return <ImageElement key={el.id} {...commonProps} />;
+    }
       return null;
     },
     [
@@ -259,6 +263,16 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       onPointerUp={handleCanvasPointerUp}
       onWheel={handleWheel}
     >
+      <div>
+      {document.rootElementIds.map((id) => {
+        const el = document.elements[id];
+        if (el) {
+          return renderShape(el);
+        }
+        return null;
+      })}
+    </div>
+    
       <div className={styles.elementsLayer} ref={elementsLayerRef}>
         {renderedShapes}
       </div>
