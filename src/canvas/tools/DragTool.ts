@@ -130,11 +130,18 @@ export class DragTool {
         const currentElement = this.documentRef?.current?.elements[elId];
         const currentTransform = currentElement?.transform || {};
         
+        // 使用更安全的方式获取和设置transform属性
+        const scaleX = (currentTransform as any)?.scaleX || 1;
+        const scaleY = (currentTransform as any)?.scaleY || 1;
+        const rotation = (currentTransform as any)?.rotation || 0;
+        
         this.onUpdateElementCallback(elId, {
           transform: {
-            ...currentTransform, // 保留现有属性
             x: initialPos.x + deltaX,
-            y: initialPos.y + deltaY
+            y: initialPos.y + deltaY,
+            scaleX,
+            scaleY,
+            rotation
           },
         });
         updated = true;
