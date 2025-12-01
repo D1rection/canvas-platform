@@ -55,12 +55,65 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
       }}
       onPointerDown={handlePointerDown}
     >
+      {/* 四条边的中心控制点 */}
+      {/* 上边中心 */}
+      <div
+        style={{
+          ...handleStyle,
+          top: handleOffset,
+          left: width / 2 + handleOffset,
+          cursor: "n-resize"
+        }}
+        onPointerDown={handlePointerDown}
+      />
+      {/* 右边中心 */}
+      <div
+        style={{
+          ...handleStyle,
+          top: height / 2 + handleOffset,
+          right: handleOffset,
+          cursor: "e-resize"
+        }}
+        onPointerDown={handlePointerDown}
+      />
+      {/* 下边中心 */}
+      <div
+        style={{
+          ...handleStyle,
+          bottom: handleOffset,
+          left: width / 2 + handleOffset,
+          cursor: "s-resize"
+        }}
+        onPointerDown={handlePointerDown}
+      />
+      {/* 左边中心 */}
+      <div
+        style={{
+          ...handleStyle,
+          top: height / 2 + handleOffset,
+          left: handleOffset,
+          cursor: "w-resize"
+        }}
+        onPointerDown={handlePointerDown}
+      />
+
       {/* 四角控制点 */}
-      <div style={{ ...handleStyle, top: handleOffset, left: handleOffset, cursor: "nwse-resize" }} />
-      <div style={{ ...handleStyle, top: handleOffset, right: handleOffset, cursor: "nesw-resize" }} />
-      <div style={{ ...handleStyle, bottom: handleOffset, left: handleOffset, cursor: "nesw-resize" }} />
-      <div style={{ ...handleStyle, bottom: handleOffset, right: handleOffset, cursor: "nwse-resize" }} />
+      <div
+        style={{ ...handleStyle, top: handleOffset, left: handleOffset, cursor: "nwse-resize" }}
+        onPointerDown={handlePointerDown}
+      />
+      <div
+        style={{ ...handleStyle, top: handleOffset, right: handleOffset, cursor: "nesw-resize" }}
+        onPointerDown={handlePointerDown}
+      />
+      <div
+        style={{ ...handleStyle, bottom: handleOffset, left: handleOffset, cursor: "nesw-resize" }}
+        onPointerDown={handlePointerDown}
+      />
+      <div
+        style={{ ...handleStyle, bottom: handleOffset, right: handleOffset, cursor: "nwse-resize" }}
+        onPointerDown={handlePointerDown}
+      />
     </div>
   );
 };
-
