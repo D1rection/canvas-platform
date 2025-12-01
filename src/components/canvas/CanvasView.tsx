@@ -140,10 +140,6 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     id: string,
     e: React.PointerEvent<HTMLDivElement>
   ) => {
-    // 仅响应鼠标左键 (button === 0)
-    if (e.button !== 0) {
-      return;
-    }
 
     if (!isDragging && cursor === "grab") setIsDragging(true);
     onElementPointerDown?.(id, e);
