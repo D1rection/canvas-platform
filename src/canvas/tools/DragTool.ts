@@ -7,10 +7,10 @@ import type { ID, CanvasElement } from '../schema/model';
 export interface DragState {
   isDragging: boolean;
   elementId: ID | undefined;
+  elementIds: ID[]; // 支持多个元素ID
   startClientX: number;
   startClientY: number;
-  initialX: number;
-  initialY: number;
+  initialPositions: Record<ID, { x: number; y: number }>; // 每个元素的初始位置
 }
 
 /**
@@ -55,11 +55,13 @@ export class DragTool {
    * 处理元素拖拽起始事件
    * @param id 元素ID
    * @param e 指针事件对象
+   * @param elementIds 可选的多个元素ID，用于多选拖拽
    * @returns 是否成功开始拖拽
    */
   handleElementPointerDown(
     id: ID | undefined,
-    e: React.PointerEvent
+    e: React.PointerEvent,
+    elementIds?: ID[]
   ): boolean {
     if (!id || !this.documentRef?.current?.elements[id] || !this.viewportRef?.current) {
       return false;
@@ -70,13 +72,29 @@ export class DragTool {
       return false;
     }
 
+    // 准备初始位置记录
+    const initialPositions: Record<ID, { x: number; y: number }> = {};
+    
+    // 如果提供了多个元素ID，记录每个元素的初始位置
+    const idsToProcess = elementIds && elementIds.length > 0 ? elementIds : [id];
+    
+    for (const elId of idsToProcess) {
+      const el = this.documentRef.current.elements[elId];
+      if (el && el.transform) {
+        initialPositions[elId] = {
+          x: el.transform.x,
+          y: el.transform.y
+        };
+      }
+    }
+
     this.dragState = {
       isDragging: true,
       elementId: id,
+      elementIds: idsToProcess,
       startClientX: e.clientX,
       startClientY: e.clientY,
-      initialX: element.transform.x,
-      initialY: element.transform.y,
+      initialPositions: initialPositions
     };
 
     return true;
@@ -92,29 +110,36 @@ export class DragTool {
     clientX: number,
     clientY: number
   ): boolean {
-    if (!this.dragState?.isDragging || !this.dragState.elementId || !this.viewportRef?.current || !this.onUpdateElementCallback) {
+    if (!this.dragState?.isDragging || !this.viewportRef?.current || !this.onUpdateElementCallback) {
       return false;
     }
 
-    const { startClientX, startClientY, initialX, initialY, elementId } = this.dragState;
+    const { startClientX, startClientY, elementIds, initialPositions } = this.dragState;
     const scale = this.viewportRef.current?.scale || 1;
 
     // 计算移动距离（世界坐标）
     const deltaX = (clientX - startClientX) / scale;
     const deltaY = (clientY - startClientY) / scale;
 
-    // 更新元素位置
-    this.onUpdateElementCallback(elementId, {
-      transform: {
-        x: initialX + deltaX,
-        y: initialY + deltaY,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0
-      },
-    });
+    // 对每个选中的元素应用相同的移动距离
+    let updated = false;
+    for (const elId of elementIds) {
+      const initialPos = initialPositions[elId];
+      if (initialPos) {
+        this.onUpdateElementCallback(elId, {
+          transform: {
+            x: initialPos.x + deltaX,
+            y: initialPos.y + deltaY,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0
+          },
+        });
+        updated = true;
+      }
+    }
 
-    return true;
+    return updated;
   }
 
   /**

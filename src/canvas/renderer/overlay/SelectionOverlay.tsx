@@ -10,6 +10,7 @@ interface SelectionOverlayProps {
   viewport: ViewportState;
   onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent) => void;
   onScaleHandlePointerDown?: (id: ID | undefined, direction: ScaleDirection, e: React.PointerEvent) => void;
+  onSelectionBoxPointerDown?: (e: React.PointerEvent<Element>) => void; // 多选框拖拽回调
 }
 
 /**
@@ -96,6 +97,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   viewport,
   onRotateHandlePointerDown,
   onScaleHandlePointerDown,
+  onSelectionBoxPointerDown,
 }) => {
   const scale = viewport.scale;
 
@@ -139,6 +141,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       top={bounds.top}
       width={bounds.width}
       height={bounds.height}
+      onPointerDown={onSelectionBoxPointerDown}
     />
   );
 };

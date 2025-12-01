@@ -180,17 +180,22 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   const handleShapePointerDown = React.useCallback(
     (id: string, e: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDragging && cursor === "grab") setIsDragging(true);
-      
-      // 使用拖拽工具处理元素拖拽
-      if (dragTool.current) {
-        dragTool.current.handleElementPointerDown(id, e);
+      // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
+      if (!isDragging && cursor === "grab") {
+        setIsDragging(true);
+      } else if (cursor !== "grab") {
+        // 只有在非画布拖拽模式下才使用元素拖拽工具
+        if (dragTool.current) {
+          // 如果有多个选中的元素，传递所有选中的元素ID
+          const selectedIds = selection.selectedIds.length > 0 ? selection.selectedIds : [id];
+          dragTool.current.handleElementPointerDown(id, e, selectedIds);
+        }
       }
       
       onElementPointerDown?.(id, e);
       e.stopPropagation();
     },
-    [isDragging, cursor, onElementPointerDown]
+    [isDragging, cursor, onElementPointerDown, selection.selectedIds]
   );
 
   const renderShape = React.useCallback(
@@ -409,6 +414,16 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         viewport={viewport}
         onRotateHandlePointerDown={handleRotateHandlePointerDown}
         onScaleHandlePointerDown={handleScaleHandlePointerDown}
+        onSelectionBoxPointerDown={(e) => {
+          // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
+          if (cursor !== "grab" && selection.selectedIds.length > 0 && dragTool.current) {
+            // 只有在非画布拖拽模式下，才使用元素拖拽工具
+            // 使用第一个选中的元素作为主ID，但传递所有选中的ID
+            const mainId = selection.selectedIds[0];
+            dragTool.current.handleElementPointerDown(mainId, e, selection.selectedIds);
+            e.stopPropagation();
+          }
+        }}
       />
 
         {selection.selectedIds.length === 1 && (
