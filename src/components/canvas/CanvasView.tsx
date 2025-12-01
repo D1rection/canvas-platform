@@ -15,6 +15,7 @@ import {
 } from "../../canvas/renderer";
 import { ElementToolbar } from "../ElementToolbar";
 import styles from "./CanvasView.module.css";
+import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 
 interface CanvasViewProps {
   state: CanvasRuntimeState;
@@ -95,7 +96,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     });
   }, [document.elements, selection.selectedIds]);
 
-  // 是否正在拖拽
+  // 是否正在拖拽画布
   const [isDragging, setIsDragging] = useState(false);
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = useRef<HTMLDivElement | null>(null);
@@ -156,7 +157,6 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       scale,
       onPointerDown: (e: React.PointerEvent<any>) =>
         handleShapePointerDown(el.id, e),
-      isHovered: selection.hoveredId === el.id,
       isSelected: selection.selectedIds.includes(el.id),
     };
 
@@ -326,6 +326,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             element={document.elements[selection.selectedIds[0]]}
             viewport={viewport}
             onUpdateElement={handleUpdateElement}
+          />
+        )}
+
+        {state.marqueeSelection && (
+          <MarqueeSelectionBox
+            startPoint={state.marqueeSelection.startPoint}
+            endPoint={state.marqueeSelection.endPoint}
+            viewport={viewport}
           />
         )}
 

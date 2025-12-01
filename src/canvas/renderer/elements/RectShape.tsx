@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ShapeElement, ViewportState } from "../../schema/model";
 
 interface RectShapeProps {
@@ -6,7 +6,6 @@ interface RectShapeProps {
   viewport: ViewportState;
   scale: number;
   onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
-  isHovered: boolean;
   isSelected: boolean;
 }
 
@@ -19,10 +18,10 @@ export const RectShape: React.FC<RectShapeProps> = ({
   viewport,
   scale,
   onPointerDown,
-  isHovered,
   isSelected,
 }) => {
   const { transform, size, style } = element;
+  const [isHovered, setIsHovered] = useState(false);
 
   const left = (transform.x - viewport.x) * scale;
   const top = (transform.y - viewport.y) * scale;
@@ -35,6 +34,8 @@ export const RectShape: React.FC<RectShapeProps> = ({
     <div
       data-id={element.id}
       onPointerDown={onPointerDown}
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
       style={{
         position: "absolute",
         left,

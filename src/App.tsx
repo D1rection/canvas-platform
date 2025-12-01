@@ -228,7 +228,7 @@ function App({ canvasContainer }: AppProps) {
                 onUpdateElement={handleUpdateElement}
               />
             </div>
-      </div>
+          </div>
         </>
       )}
     </>

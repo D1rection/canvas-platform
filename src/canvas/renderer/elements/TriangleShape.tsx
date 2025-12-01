@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ShapeElement, ViewportState } from "../../schema/model";
 
 interface TriangleShapeProps {
@@ -6,7 +6,6 @@ interface TriangleShapeProps {
   viewport: ViewportState;
   scale: number;
   onPointerDown?: React.PointerEventHandler<SVGSVGElement>;
-  isHovered: boolean;
   isSelected: boolean;
 }
 
@@ -19,11 +18,10 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
   viewport,
   scale,
   onPointerDown,
-  isHovered,
   isSelected,
 }) => {
   const { transform, size, style } = element;
-
+  const [isHovered, setIsHovered] = useState(false);
   const left = (transform.x - viewport.x) * scale;
   const top = (transform.y - viewport.y) * scale;
   const width = size.width * scale;
@@ -38,6 +36,8 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
     <svg
       data-id={element.id}
       onPointerDown={onPointerDown}
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
       style={{
         position: "absolute",
         left,
