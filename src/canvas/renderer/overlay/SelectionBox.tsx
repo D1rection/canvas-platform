@@ -11,6 +11,7 @@ interface SelectionBoxProps {
   id?: ID;
   onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent) => void;
   onScaleHandlePointerDown?: (id: ID | undefined, direction: ScaleDirection, e: React.PointerEvent) => void;
+  onSelectionBoxPointerDown?: (e: React.PointerEvent<Element>) => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
   id,
   onRotateHandlePointerDown,
   onScaleHandlePointerDown,
+  onSelectionBoxPointerDown,
 }) => {
   const handleSize = 10;
   const handleOffset = -handleSize / 2;
@@ -77,10 +79,18 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
   };
 
   /**
-   * 阻止事件冒泡，避免点击选中框时触发画布的 pointerdown
+   * 处理选中框的指针按下事件
+   * - 阻止事件冒泡，避免触发画布的 pointerdown
+   * - 调用外部传入的回调函数，以便触发拖拽操作
    */
   const handlePointerDown = (e: React.PointerEvent) => {
+    // 阻止事件冒泡
     e.stopPropagation();
+    
+    // 调用外部传入的回调函数，用于触发拖拽操作
+    if (onSelectionBoxPointerDown) {
+      onSelectionBoxPointerDown(e);
+    }
   };
 
   /**

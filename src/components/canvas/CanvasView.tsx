@@ -421,7 +421,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             // 只有在非画布拖拽模式下，才使用元素拖拽工具
             // 使用第一个选中的元素作为主ID，但传递所有选中的ID
             const mainId = selection.selectedIds[0];
-            dragTool.current.handleElementPointerDown(mainId, e, selection.selectedIds);
+            dragTool.current.handleElementPointerDown(mainId, e as React.PointerEvent<HTMLDivElement>, selection.selectedIds);
             e.stopPropagation();
           }
         }}

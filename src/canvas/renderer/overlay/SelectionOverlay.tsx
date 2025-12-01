@@ -127,6 +127,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         id={element.id}
         onRotateHandlePointerDown={onRotateHandlePointerDown}
         onScaleHandlePointerDown={onScaleHandlePointerDown}
+        onSelectionBoxPointerDown={onSelectionBoxPointerDown}
       />
     );
   }

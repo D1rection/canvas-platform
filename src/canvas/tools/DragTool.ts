@@ -126,13 +126,15 @@ export class DragTool {
     for (const elId of elementIds) {
       const initialPos = initialPositions[elId];
       if (initialPos) {
+        // 获取元素当前的transform属性，保留scaleX、scaleY和rotation
+        const currentElement = this.documentRef?.current?.elements[elId];
+        const currentTransform = currentElement?.transform || {};
+        
         this.onUpdateElementCallback(elId, {
           transform: {
+            ...currentTransform, // 保留现有属性
             x: initialPos.x + deltaX,
-            y: initialPos.y + deltaY,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0
+            y: initialPos.y + deltaY
           },
         });
         updated = true;
