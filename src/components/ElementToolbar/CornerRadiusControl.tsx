@@ -30,7 +30,8 @@ export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({
   const sliderRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (value: number) => {
-    const newValue = Math.max(0, value); // 确保值不为负数
+    // 确保值在0-50范围内
+    const newValue = Math.max(0, Math.min(value, 50));
     setLocalValue(newValue);
     // 正确更新元素的样式属性
     onUpdateElement(element.id, {
@@ -71,7 +72,8 @@ export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({
         return;
     }
 
-    const newValue = localValue + delta;
+    // 计算新值并应用边界限制（0-50）
+    const newValue = Math.max(0, Math.min(localValue + delta, 50));
     handleChange(newValue);
     
     // 对于箭头键，我们阻止默认行为以避免页面滚动
