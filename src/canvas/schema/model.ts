@@ -130,6 +130,7 @@ export type ImageFilterType = "grayscale" | "brightness" | "blur";
  * 单个图片滤镜配置
  */
 export interface ImageFilter {
+  [x: string]: any;
   /** 滤镜种类 */
   type: ImageFilterType;
   /**
@@ -141,6 +142,7 @@ export interface ImageFilter {
    *   - `blur`：0 ~ 20
    */
   value: number;
+  id: string; 
 }
 
 /**
