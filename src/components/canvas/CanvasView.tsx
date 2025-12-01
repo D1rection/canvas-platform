@@ -19,6 +19,7 @@ import styles from "./CanvasView.module.css";
 import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 import { RotateTool } from "../../canvas/tools/RotateTool";
 import { DragTool } from "../../canvas/tools/DragTool";
+import { ScaleTool, ScaleDirection } from "../../canvas/tools/ScaleTool";
 
 interface CanvasViewProps {
   state: CanvasRuntimeState;
@@ -54,6 +55,13 @@ interface CanvasViewProps {
   /** 旋转控制点鼠标点击 */
   onRotateHandlePointerDown?: (
     id: ID | undefined,
+    e: React.PointerEvent<HTMLElement>
+  ) => void;
+  
+  /** 缩放控制点鼠标点击 */
+  onScaleHandlePointerDown?: (
+    id: ID | undefined,
+    direction: number,
     e: React.PointerEvent<HTMLElement>
   ) => void;
 }
@@ -114,6 +122,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const rotateTool = useRef<RotateTool | null>(null);
   // 拖拽工具实例
   const dragTool = useRef<DragTool | null>(null);
+  // 缩放工具实例
+  const scaleTool = useRef<ScaleTool | null>(null);
 
   // 更新document和viewport的ref，以便在事件处理函数中使用最新的值
   useEffect(() => {
@@ -142,9 +152,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         viewportRef
       );
     }
+    
+    // 初始化或更新缩放工具
+    if (!scaleTool.current) {
+      scaleTool.current = new ScaleTool(onUpdateElement, documentRef, viewportRef);
+    } else {
+      scaleTool.current.updateDependencies(
+        onUpdateElement,
+        documentRef,
+        viewportRef
+      );
+    }
   }, [document, viewport, onUpdateElement, styles.root]);
   
-  // 移除了冗余的旋转工具初始化useEffect
+  
   // 旋转工具已经在上面的useEffect中初始化和更新
 
   const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
@@ -274,6 +295,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       onRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
     }
   };
+  
+  // 处理缩放控制点的指针按下事件
+  const handleScaleHandlePointerDown = (id: ID | undefined, direction: number, e: React.PointerEvent<Element>) => {
+    // 使用缩放工具处理缩放控制点的点击事件
+    if (scaleTool.current) {
+      // 进行类型断言以匹配scaleTool的期望类型
+      scaleTool.current.handleScaleHandlePointerDown(id, direction as ScaleDirection, e as React.PointerEvent<HTMLElement>);
+    }
+    
+    // 通知外部处理缩放开始
+    if (onScaleHandlePointerDown) {
+      onScaleHandlePointerDown(id, direction, e as React.PointerEvent<HTMLElement>);
+    }
+  };
 
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     // 如果正在拖拽，使用拖拽工具处理
@@ -284,6 +319,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     
     // 如果正在旋转，不执行正常的画布移动处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
+    
+    // 如果正在缩放，不执行正常的画布移动处理
+    if (scaleTool.current && scaleTool.current.isScaling()) return;
     
     if (!onCanvasPointerMove) return;
     const point = screenToWorld(e);
@@ -298,6 +336,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     
     // 如果正在旋转，不执行正常的画布松开处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
+    
+    // 如果正在缩放，不执行正常的画布松开处理
+    if (scaleTool.current && scaleTool.current.isScaling()) return;
     
     if (!onCanvasPointerUp) return;
     if (isDragging) setIsDragging(false);
@@ -363,11 +404,12 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
       <div className={styles.overlayLayer} ref={overlayLayerRef}>
         <SelectionOverlay
-          selectedIds={selection.selectedIds}
-          elements={document.elements}
-          viewport={viewport}
-          onRotateHandlePointerDown={handleRotateHandlePointerDown}
-        />
+        selectedIds={selection.selectedIds}
+        elements={document.elements}
+        viewport={viewport}
+        onRotateHandlePointerDown={handleRotateHandlePointerDown}
+        onScaleHandlePointerDown={handleScaleHandlePointerDown}
+      />
 
         {selection.selectedIds.length === 1 && (
           <ElementToolbar

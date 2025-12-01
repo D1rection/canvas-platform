@@ -2,12 +2,14 @@ import React from "react";
 import type { CanvasElement, ID, Transform, Size, Point, ViewportState } from "../../schema/model";
 import { SelectionBox } from "./SelectionBox";
 import { MultiSelectionBox } from "./MultiSelectionBox";
+import type { ScaleDirection } from "../../tools/ScaleTool";
 
 interface SelectionOverlayProps {
   selectedIds: ID[];
   elements: Record<ID, CanvasElement>;
   viewport: ViewportState;
   onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent) => void;
+  onScaleHandlePointerDown?: (id: ID | undefined, direction: ScaleDirection, e: React.PointerEvent) => void;
 }
 
 /**
@@ -93,6 +95,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   elements,
   viewport,
   onRotateHandlePointerDown,
+  onScaleHandlePointerDown,
 }) => {
   const scale = viewport.scale;
 
@@ -121,6 +124,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         rotation={transform.rotation}
         id={element.id}
         onRotateHandlePointerDown={onRotateHandlePointerDown}
+        onScaleHandlePointerDown={onScaleHandlePointerDown}
       />
     );
   }
