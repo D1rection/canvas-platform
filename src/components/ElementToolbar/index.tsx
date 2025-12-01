@@ -4,7 +4,12 @@ import { BorderColorPicker } from "./BorderColorPicker"; // 引入边框颜色�
 import { SizeControl } from "./SizeControl";
 import { OpacitySlider } from "./OpacitySlider";
 import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
-import type { ID, CanvasElement, ViewportState } from "../../canvas/schema/model";
+import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控制
+import type {
+  ID,
+  CanvasElement,
+  ViewportState,
+} from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
 
 interface ElementToolbarProps {
@@ -78,14 +83,13 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
     };
   }, [isToolbarDragging, dragStartPos]);
 
-
   // 计算工具栏位置（智能避让算法）
   const getToolbarPosition = () => {
     if (!element || !element.transform) {
       return { top: 0, left: 0 };
     }
 
-    const toolbarWidth = 300; 
+    const toolbarWidth = 300;
     const toolbarHeight = 80;
     const margin = 10;
 
@@ -125,7 +129,10 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
           top: elementTop - toolbarHeight - margin,
           left: elementCenterX - toolbarWidth / 2,
         },
-        score: availableSpaceTop > toolbarHeight + margin ? 100 + availableSpaceTop : 0, 
+        score:
+          availableSpaceTop > toolbarHeight + margin
+            ? 100 + availableSpaceTop
+            : 0,
         direction: "top",
       },
       // Bottom
@@ -134,7 +141,10 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
           top: elementBottom + margin,
           left: elementCenterX - toolbarWidth / 2,
         },
-        score: availableSpaceBottom > toolbarHeight + margin ? 80 + availableSpaceBottom : 0,
+        score:
+          availableSpaceBottom > toolbarHeight + margin
+            ? 80 + availableSpaceBottom
+            : 0,
         direction: "bottom",
       },
       // Left
@@ -143,7 +153,10 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
           top: Math.max(0, elementTop + (screenHeight - toolbarHeight) / 2),
           left: screenX - toolbarWidth - margin,
         },
-        score: availableSpaceLeft > toolbarWidth + margin ? 60 + availableSpaceLeft : 0, 
+        score:
+          availableSpaceLeft > toolbarWidth + margin
+            ? 60 + availableSpaceLeft
+            : 0,
         direction: "left",
       },
       // Right
@@ -152,7 +165,10 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
           top: Math.max(0, elementTop + (screenHeight - toolbarHeight) / 2),
           left: screenX + screenWidth + margin,
         },
-        score: availableSpaceRight > toolbarWidth + margin ? 40 + availableSpaceRight : 0,
+        score:
+          availableSpaceRight > toolbarWidth + margin
+            ? 40 + availableSpaceRight
+            : 0,
         direction: "right",
       },
     ];
@@ -192,50 +208,38 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
     e.stopPropagation();
   };
 
+  return (
+    <div
+      ref={toolbarRef}
+      className={styles.toolbarWrapper}
+      onClick={handleToolbarClick}
+      onMouseDown={handleToolbarDragStart}
+      style={{
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        width: getResponsiveToolbarWidth(),
+        cursor: isToolbarDragging ? "grabbing" : "grab",
+      }}
+    >
+      {/* 颜色选择器 */}
+      <ColorPicker element={element} onUpdateElement={onUpdateElement} />
 
-return (
-  <div
-    ref={toolbarRef}
-    className={styles.toolbarWrapper}
-    onClick={handleToolbarClick}
-    onMouseDown={handleToolbarDragStart}
-    style={{
-      top: `${position.top}px`,
-      left: `${position.left}px`,
-      width: getResponsiveToolbarWidth(), 
-      cursor: isToolbarDragging ? "grabbing" : "grab",
-    }}
-  >
-    {/* 颜色选择器 */}
-    <ColorPicker 
-      element={element} 
-      onUpdateElement={onUpdateElement} 
-    />
+      {/* 边框颜色选择器 */}
+      <BorderColorPicker element={element} onUpdateElement={onUpdateElement} />
 
-    {/* 边框颜色选择器 */}
-    <BorderColorPicker
-      element={element}
-      onUpdateElement={onUpdateElement}
-    />
+      {/* 大小调节区域 */}
+      <SizeControl element={element} onUpdateElement={onUpdateElement} />
 
-    {/* 大小调节区域 */}
-    <SizeControl 
-      element={element} 
-      onUpdateElement={onUpdateElement} 
-    />
-
-    {/* 边框宽度控制 */}
-    <BorderWidthControl
-      element={element}
-      onUpdateElement={onUpdateElement}
-    />
-
-    {/* 透明度调节 */}
-    <OpacitySlider 
-      element={element} 
-      onUpdateElement={onUpdateElement} 
-    />
-  </div>
-);
-}
+      {/* 边框宽度控制 */}
+      <BorderWidthControl element={element} onUpdateElement={onUpdateElement} />
+      {/* 圆角控制 */}
+      <CornerRadiusControl
+        element={element}
+        onUpdateElement={onUpdateElement}
+      />
+      {/* 透明度调节 */}
+      <OpacitySlider element={element} onUpdateElement={onUpdateElement} />
+    </div>
+  );
+};
 export default ElementToolbar;

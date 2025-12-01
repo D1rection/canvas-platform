@@ -9,13 +9,14 @@
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(8px);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   border: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-width: 500px;
+  gap: 12px;
+  min-width: fit-content; /* 根据内容自适应最小宽度 */
+  width: max-content; /* 根据内容自适应宽度 */
   z-index: 1000;
   pointer-events: auto;
   transition: top 0.2s ease, left 0.2s ease;
@@ -33,8 +34,8 @@
 }
 
 .colorTrigger {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
@@ -51,8 +52,8 @@
 }
 
 .borderColorTrigger {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   cursor: pointer;
   transition: transform 0.1s ease;
@@ -160,12 +161,12 @@
 .sizeInputRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sizeInput {
   width: 100%;
-  padding: 4px 6px;
+  padding: 3px 5px;
   font-size: 11px;
   border: 1px solid #e0e0e0;
   border-radius: 3px;
@@ -255,7 +256,7 @@
 /* 透明度滑块样式 (.opacitySliderContainer) */
 /* ==================================== */
 .opacitySliderContainer {
-  width: 80px;
+  width: 70px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -307,7 +308,7 @@
 .borderWidthControlContainer {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .borderWidthControlHeader {
@@ -326,12 +327,12 @@
 .borderWidthInputWrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .borderWidthInput {
   flex: 1;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   font-size: 12px;
@@ -363,7 +364,8 @@
 .cornerRadiusControlContainer {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  width: 90px; /* 添加固定宽度限制整体宽度 */
 }
 
 .cornerRadiusControlHeader {
@@ -382,16 +384,17 @@
 .cornerRadiusInputWrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px; /* 减小间距 */
 }
 
 .cornerRadiusInput {
   flex: 1;
-  padding: 6px 8px;
+  padding: 3px 5px; /* 减小padding */
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px; /* 稍微减小字体 */
   text-align: center;
+  width: 40px; /* 固定输入框宽度 */
 }
 
 .cornerRadiusUnit {
@@ -402,6 +405,7 @@
 
 .cornerRadiusSlider {
   width: 100%;
+  max-width: 70px; /* 限制滑动条最大宽度 */
   margin: 4px 0;
   cursor: pointer;
 }
@@ -418,6 +422,6 @@
 /* ==================================== */
 .colorControlsRow {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }

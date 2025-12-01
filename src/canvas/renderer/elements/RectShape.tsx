@@ -49,9 +49,13 @@ export const RectShape: React.FC<RectShapeProps> = ({
         transform: `rotate(${transform.rotation}deg)`,
         transformOrigin: "top left",
         opacity: element.opacity ?? 1, // 应用元素透明度，默认为1
-        outline: (isHovered && !isSelected)
-          ? `${hoverOutlineWidth}px solid #5da500d8`
-          : "none",
+        outline:
+          isHovered && !isSelected
+            ? `${hoverOutlineWidth}px solid #5da500d8`
+            : "none",
+        borderRadius: style.cornerRadius
+          ? `${style.cornerRadius * scale}px`
+          : "0px",
       }}
     />
   );

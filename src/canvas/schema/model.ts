@@ -68,7 +68,6 @@ export interface Transform {
   rotation: number;
 }
 
-
 /**
  * 画布视口状态
  *
@@ -85,7 +84,7 @@ export interface ViewportState {
   x: number;
   /**
    * 视口在场景坐标系中的 Y 偏移
-   * 
+   *
    * - 可以理解为「相机」左上角的位置
    */
   y: number;
@@ -106,7 +105,7 @@ export interface ViewportState {
  * - `image`：位图图片元素
  * - `group`：组元素，用于多个元素的逻辑组合
  */
-export type ElementType = 'shape' | 'text' | 'image' | 'group';
+export type ElementType = "shape" | "text" | "image" | "group";
 
 /**
  * 形状细分类型
@@ -116,7 +115,7 @@ export type ElementType = 'shape' | 'text' | 'image' | 'group';
  * - `circle`：圆形
  * - `triangle`：三角形
  */
-export type ShapeKind = 'rect' | 'roundRect' | 'circle' | 'triangle';
+export type ShapeKind = "rect" | "roundRect" | "circle" | "triangle";
 
 /**
  * 图片滤镜类型
@@ -125,7 +124,7 @@ export type ShapeKind = 'rect' | 'roundRect' | 'circle' | 'triangle';
  * - `brightness`：亮度
  * - `blur`：模糊
  */
-export type ImageFilterType = 'grayscale' | 'brightness' | 'blur';
+export type ImageFilterType = "grayscale" | "brightness" | "blur";
 
 /**
  * 单个图片滤镜配置
@@ -150,7 +149,7 @@ export interface ImageFilter {
  * - `underline`：下划线
  * - `lineThrough`：删除线
  */
-export type TextDecoration = 'underline' | 'lineThrough';
+export type TextDecoration = "underline" | "lineThrough";
 
 /**
  * 形状样式定义
@@ -167,8 +166,8 @@ export interface ShapeStyle {
   /**
    * 圆角半径
    *
-   * - 仅对 `roundRect` 生效
-   * - 为 `undefined` 时表示不使用圆角
+   * - 对 [rect](file://f:\canvas-platform\src\tools\select.ts#L56-L56) 和 `triangle` 也生效
+   * - 为 0 时表示不使用圆角
    */
   cornerRadius?: number;
 }
@@ -244,7 +243,7 @@ export interface ElementBase {
  */
 export interface ShapeElement extends ElementBase {
   /** 固定为 `shape`，用于类型收窄 */
-  type: 'shape';
+  type: "shape";
   /** 形状种类，如矩形、圆形等 */
   shape: ShapeKind;
   /** 形状的视觉样式 */
@@ -261,7 +260,7 @@ export interface ShapeElement extends ElementBase {
  */
 export interface ImageElement extends ElementBase {
   /** 固定为 `image` */
-  type: 'image';
+  type: "image";
   /** 图片资源地址（URL 或本地路径） */
   src: string;
   /** 图片原始尺寸（未缩放前的宽高） */
@@ -280,7 +279,7 @@ export interface ImageElement extends ElementBase {
  */
 export interface TextElement extends ElementBase {
   /** 固定为 `text` */
-  type: 'text';
+  type: "text";
   /**
    * 文本片段数组
    *
@@ -295,7 +294,7 @@ export interface TextElement extends ElementBase {
    * - `center`：居中对齐
    * - `right`：右对齐
    */
-  align: 'left' | 'center' | 'right';
+  align: "left" | "center" | "right";
   /**
    * 行高
    *
@@ -325,7 +324,7 @@ export interface TextSpan {
  */
 export interface GroupElement extends ElementBase {
   /** 固定为 `group` */
-  type: 'group';
+  type: "group";
   /**
    * 子元素 ID 列表
    *
@@ -340,7 +339,11 @@ export interface GroupElement extends ElementBase {
  *
  * - 在运行时可通过 `element.type` 进行类型收窄
  */
-export type CanvasElement = ShapeElement | TextElement | ImageElement | GroupElement;
+export type CanvasElement =
+  | ShapeElement
+  | TextElement
+  | ImageElement
+  | GroupElement;
 
 /**
  * 画布文档（草稿）数据结构
@@ -410,8 +413,6 @@ export interface SelectionState {
     endOffset: number;
   } | null;
 }
-
-
 
 /**
  * 辅助线

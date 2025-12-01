@@ -1,93 +1,72 @@
-// // CornerRadiusControl.tsx
+// CornerRadiusControl.tsx
+import React, { useState } from "react";
+import type { CanvasElement } from "../../canvas/schema/model";
+import styles from "./ElementToolbar.module.css";
 
-// import React, { useState, useEffect } from "react";
-// import type { ID, CanvasElement } from "../../canvas/schema/model";
-// import { getElementCornerRadius, setElementCornerRadius } from "./utils";
-// import styles from "./ElementToolbar.module.css";
+interface CornerRadiusControlProps {
+  element: CanvasElement;
+  onUpdateElement: (id: string, updates: Partial<CanvasElement>) => void;
+}
 
-// interface CornerRadiusControlProps {
-//   element: CanvasElement;
-//   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
-// }
+export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({
+  element,
+  onUpdateElement,
+}) => {
+  // 类型检查，只有支持圆角的元素才显示此控件
+  const hasCornerRadius = element.type === "shape" && element.shape === "rect";
 
-// export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({ 
-//   element, 
-//   onUpdateElement 
-// }) => {
-//   const [cornerRadius, setCornerRadius] = useState(0);
-//   const [isDragging, setIsDragging] = useState(false);
+  if (!hasCornerRadius) {
+    return null;
+  }
 
-//   // 同步元素圆角半径
-//   useEffect(() => {
-//     setCornerRadius(getElementCornerRadius(element));
-//   }, [element]);
+  // 从元素样式中获取圆角值
+  const cornerRadius =
+    "style" in element && element.style.cornerRadius
+      ? element.style.cornerRadius
+      : 0;
+  const [localValue, setLocalValue] = useState(cornerRadius);
 
-//   // 处理半径变化
-//   const handleRadiusChange = (value: number) => {
-//     const validValue = Math.max(0, Math.min(50, value));
-//     setCornerRadius(validValue);
-    
-//     const radiusUpdates = setElementCornerRadius(element, validValue);
-//     onUpdateElement(element.id, radiusUpdates);
-//   };
+  const handleChange = (value: number) => {
+    const newValue = Math.max(0, value); // 确保值不为负数
+    setLocalValue(newValue);
+    // 正确更新元素的样式属性
+    onUpdateElement(element.id, {
+      style: {
+        ...element.style,
+        cornerRadius: newValue,
+      },
+    });
+  };
 
-//   // 处理滑块拖拽事件
-//   const handleSliderMouseDown = (e: React.MouseEvent) => {
-//     e.stopPropagation();
-//     setIsDragging(true);
-//   };
+  return (
+    <div className={styles.cornerRadiusControlContainer}>
+      <div className={styles.cornerRadiusControlHeader}>
+        <span className={styles.cornerRadiusControlLabel}>圆角</span>
+      </div>
 
-//   const handleSliderMouseUp = (e: React.MouseEvent) => {
-//     e.stopPropagation();
-//     setIsDragging(false);
-//   };
+      <div className={styles.cornerRadiusInputWrapper}>
+        <input
+          type="number"
+          min="0"
+          value={localValue}
+          onChange={(e) => handleChange(Number(e.target.value))}
+          className={styles.cornerRadiusInput}
+        />
+        <span className={styles.cornerRadiusUnit}>px</span>
+      </div>
 
-//   // 处理输入框变化
-//   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const value = parseInt(e.target.value, 10);
-//     if (!isNaN(value)) {
-//       handleRadiusChange(value);
-//     }
-//   };
+      <input
+        type="range"
+        min="0"
+        max="50"
+        value={localValue}
+        onChange={(e) => handleChange(Number(e.target.value))}
+        className={styles.cornerRadiusSlider}
+      />
 
-//   // 仅对矩形和圆角矩形显示
-//   if (element.type !== 'shape' || (element.shape !== 'rect' && element.shape !== 'roundRect')) {
-//     return null;
-//   }
-
-//   return (
-//     <div 
-//       className={styles.cornerRadiusControlContainer}
-//       onMouseDown={(e) => e.stopPropagation()}
-//     >
-//       <div className={styles.cornerRadiusControlHeader}>
-//         <label className={styles.cornerRadiusControlLabel}>圆角半径</label>
-//       </div>
-
-//       <div className={styles.cornerRadiusInputWrapper}>
-//         <input
-//           type="number"
-//           value={cornerRadius}
-//           onChange={handleInputChange}
-//           min="0"
-//           max="50"
-//           className={styles.cornerRadiusInput}
-//           onMouseDown={(e) => e.stopPropagation()}
-//         />
-//         <span className={styles.cornerRadiusUnit}>px</span>
-//       </div>
-
-//       <input
-//         type="range"
-//         min="0"
-//         max="50"
-//         step="1"
-//         value={cornerRadius}
-//         onChange={(e) => handleRadiusChange(Number(e.target.value))}
-//         onMouseDown={handleSliderMouseDown}
-//         onMouseUp={handleSliderMouseUp}
-//         className={styles.cornerRadiusSlider}
-//       />
-//     </div>
-//   );
-// };
+      <div className={styles.cornerRadiusPreview}>
+        <span>{localValue}px</span>
+      </div>
+    </div>
+  );
+};
