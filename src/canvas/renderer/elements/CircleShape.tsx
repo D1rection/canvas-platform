@@ -53,7 +53,7 @@ export const CircleShape: React.FC<CircleShapeProps> = React.memo(({
         borderWidth: style.strokeWidth * scale,
         borderRadius: "50%", // 关键：圆形
         boxSizing: "border-box",
-        transform: `rotate(${transform.rotation}deg)`,
+        transform: `rotate(${transform.rotation || 0}deg)`,
         transformOrigin: "center",
         outline: (isHovered && !isSelected)
           ? `${hoverOutlineWidth}px solid #5da500d8`

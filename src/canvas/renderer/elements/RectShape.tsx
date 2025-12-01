@@ -48,7 +48,7 @@ export const RectShape: React.FC<RectShapeProps> = ({
         borderWidth: style.strokeWidth * scale,
         boxSizing: "border-box",
         transform: `rotate(${transform.rotation}deg)`,
-        transformOrigin: "top left",
+        transformOrigin: "center",
         opacity: element.opacity ?? 1, // 应用元素透明度，默认为1
         outline:
           isHovered && !isSelected

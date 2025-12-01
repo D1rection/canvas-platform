@@ -7,6 +7,7 @@ interface SelectionOverlayProps {
   selectedIds: ID[];
   elements: Record<ID, CanvasElement>;
   viewport: ViewportState;
+  onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent) => void;
 }
 
 /**
@@ -91,6 +92,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   selectedIds,
   elements,
   viewport,
+  onRotateHandlePointerDown,
 }) => {
   const scale = viewport.scale;
 
@@ -117,6 +119,8 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         width={width}
         height={height}
         rotation={transform.rotation}
+        id={element.id}
+        onRotateHandlePointerDown={onRotateHandlePointerDown}
       />
     );
   }

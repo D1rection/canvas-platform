@@ -45,7 +45,7 @@ export const TriangleShape: React.FC<TriangleShapeProps> = ({
         width,
         height,
         transform: `rotate(${transform.rotation}deg)`,
-        transformOrigin: "top left",
+        transformOrigin: "center",
         overflow: "visible",
         pointerEvents: "visiblePainted",
         clipPath: "polygon(50% 0, 0 100%, 100% 100%)",

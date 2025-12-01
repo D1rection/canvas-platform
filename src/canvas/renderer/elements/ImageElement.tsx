@@ -37,6 +37,7 @@ export const ImageElement: React.FC<ImageElementProps> = ({
         width: screenW,
         height: screenH,
         transform: `rotate(${transform.rotation}deg)`,
+        transformOrigin: "center",
         filter: filterCSS,
         pointerEvents: "auto",
         userSelect: "none",
