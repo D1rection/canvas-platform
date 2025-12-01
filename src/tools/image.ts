@@ -1,5 +1,4 @@
 import type { ToolHandler } from "./types";
-import type { ImageElement } from "../canvas/schema/model";
 
 export const imageTool: ToolHandler = {
   cursor: "crosshair",
