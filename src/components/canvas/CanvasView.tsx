@@ -85,6 +85,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   onUpdateElement,
   onWheel,
   onRotateHandlePointerDown,
+  onScaleHandlePointerDown,
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
@@ -310,7 +311,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
     
     // 通知外部处理缩放开始
-    if (onScaleHandlePointerDown) {
+    if (typeof onScaleHandlePointerDown === 'function') {
       onScaleHandlePointerDown(id, direction, e as React.PointerEvent<HTMLElement>);
     }
   };
