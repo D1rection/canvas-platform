@@ -14,7 +14,7 @@ import {
   ImageElement,
   SelectionOverlay,
 } from "../../canvas/renderer";
-import { ElementToolbar } from "../ElementToolbar";
+import ElementToolbar from "../ElementToolbar"; // Import the default wrapped component with error boundary
 import styles from "./CanvasView.module.css";
 import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 import { RotateTool } from "../../canvas/tools/RotateTool";
@@ -226,19 +226,28 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       return;
     }
 
+    // 增强的工具栏相关元素检测
     const isToolbarRelated =
+      // 工具栏容器检测
+      target.closest(`.${styles.toolbarWrapper}`) !== null ||
+      // 工具栏内部元素检测
       target.closest('[data-toolbar-element="true"]') !== null ||
+      // 颜色选择器相关
       target.closest('[class*="colorPicker"]') !== null ||
+      target.classList.contains("colorTrigger") ||
+      target.classList.contains("presetColor") ||
+      // 控制器相关
       target.closest('[class*="sizeControl"]') !== null ||
       target.closest('[class*="opacitySlider"]') !== null ||
       target.closest('[class*="borderWidth"]') !== null ||
+      target.closest('[class*="cornerRadius"]') !== null ||
+      // 输入控件
       (target.tagName === "INPUT" && target.getAttribute("type") === "range") ||
-      target.classList.contains("colorTrigger") ||
-      target.classList.contains("presetColor") ||
+      // 滑块组件
       target.classList.contains("sliderThumb") ||
-      target.classList.contains("sliderTrack") ||
-      target.closest(`.${styles.toolbarWrapper}`) !== null;
+      target.classList.contains("sliderTrack");
 
+    // 防止点击工具栏时触发画布事件
     if (isToolbarRelated) {
       e.stopPropagation();
       return;
@@ -346,10 +355,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           onRotateHandlePointerDown={handleRotateHandlePointerDown}
         />
 
-        {selection.selectedIds.length === 1 && (
+        {/* 渲染工具栏时确保有有效的元素 */}
+        {selection.selectedIds.length === 1 && document.elements[selection.selectedIds[0]] && (
           <ElementToolbar
             element={document.elements[selection.selectedIds[0]]}
-            viewport={viewport}
             onUpdateElement={handleUpdateElement}
           />
         )}

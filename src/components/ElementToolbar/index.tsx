@@ -7,19 +7,44 @@ import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控�
 import type {
   ID,
   CanvasElement,
-  ViewportState,
 } from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
 
 interface ElementToolbarProps {
   element: CanvasElement;
-  viewport: ViewportState;
+  // viewport 参数已移除，不再使用
   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
 }
 
-export const ElementToolbar: React.FC<ElementToolbarProps> = ({
+// Error Boundary Component
+class ElementToolbarErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ElementToolbar error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null; // Silently fail without rendering the toolbar
+    }
+    return this.props.children;
+  }
+}
+
+const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
   element,
-  viewport,
+  // Removed unused viewport parameter
   onUpdateElement,
 }) => {
   const [toolbarOffset, setToolbarOffset] = useState({ x: 0, y: 0 });
@@ -82,130 +107,106 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
     };
   }, [isToolbarDragging, dragStartPos]);
 
-  // 计算工具栏位置（智能避让算法）
+  // 计算工具栏位置（优化定位系统：优先下方显示，避免遮挡元素）
   const getToolbarPosition = () => {
     if (!element || !element.transform) {
-      return { top: 0, left: 0 };
+      // 如果没有元素，默认显示在视口顶部
+      return { top: 10, left: 10 };
     }
 
     const toolbarWidth = 300;
     const toolbarHeight = 80;
     const margin = 10;
-
-    const containerWidth =
-      typeof window !== "undefined" ? window.innerWidth : 1000;
-    const containerHeight =
-      typeof window !== "undefined" ? window.innerHeight : 600;
-
-    const worldX = element.transform.x;
-    const worldY = element.transform.y;
-    const elementWidth = "size" in element ? element.size.width : 100;
-    const elementHeight = "size" in element ? element.size.height : 100;
-
-    const scale = viewport.scale;
-    const viewportX = viewport.x;
-    const viewportY = viewport.y;
-
-    const screenX = (worldX - viewportX) * scale;
-    const screenY = (worldY - viewportY) * scale;
-    const screenWidth = elementWidth * scale;
-    const screenHeight = elementHeight * scale;
-
-    const elementCenterX = screenX + screenWidth / 2;
-    const elementTop = screenY;
-    const elementBottom = screenY + screenHeight;
-
-    const availableSpaceTop = elementTop;
-    const availableSpaceBottom = containerHeight - elementBottom;
-    const availableSpaceLeft = elementCenterX - toolbarWidth / 2;
-    const availableSpaceRight =
-      containerWidth - (elementCenterX + toolbarWidth / 2);
-
-    const positions = [
-      // Top
-      {
-        position: {
-          top: elementTop - toolbarHeight - margin,
-          left: elementCenterX - toolbarWidth / 2,
-        },
-        score:
-          availableSpaceTop > toolbarHeight + margin
-            ? 100 + availableSpaceTop
-            : 0,
-        direction: "top",
-      },
-      // Bottom
-      {
-        position: {
-          top: elementBottom + margin,
-          left: elementCenterX - toolbarWidth / 2,
-        },
-        score:
-          availableSpaceBottom > toolbarHeight + margin
-            ? 80 + availableSpaceBottom
-            : 0,
-        direction: "bottom",
-      },
-      // Left
-      {
-        position: {
-          top: Math.max(0, elementTop + (screenHeight - toolbarHeight) / 2),
-          left: screenX - toolbarWidth - margin,
-        },
-        score:
-          availableSpaceLeft > toolbarWidth + margin
-            ? 60 + availableSpaceLeft
-            : 0,
-        direction: "left",
-      },
-      // Right
-      {
-        position: {
-          top: Math.max(0, elementTop + (screenHeight - toolbarHeight) / 2),
-          left: screenX + screenWidth + margin,
-        },
-        score:
-          availableSpaceRight > toolbarWidth + margin
-            ? 40 + availableSpaceRight
-            : 0,
-        direction: "right",
-      },
-    ];
-
-    const bestPosition = positions.reduce(
-      (best, current) => (current.score > best.score ? current : best),
-      positions[0]
-    );
-
-    let top = bestPosition.position.top;
-    let left = bestPosition.position.left;
-
+    const containerWidth = typeof window !== "undefined" ? window.innerWidth : 1000;
+    const containerHeight = typeof window !== "undefined" ? window.innerHeight : 600;
+    
+    // 获取元素在屏幕上的位置和大小
+    const elementX = element.transform.x;
+    const elementY = element.transform.y;
+    
+    // 安全地获取元素尺寸信息，处理不同类型的元素
+    let elementWidth = 100; // 默认宽度
+    let elementHeight = 100; // 默认高度
+    
+    // 检查元素类型并获取相应的尺寸信息
+    if ('shape' in element && element.shape) {
+      // 对于形状元素，尝试获取尺寸相关属性
+      if ('width' in element) {
+        elementWidth = Number(element.width) || 100;
+      } else if ('radius' in element) {
+        // 对于圆形等可能使用radius的元素
+        elementWidth = elementHeight = (Number(element.radius) || 50) * 2;
+      }
+      if ('height' in element) {
+        elementHeight = Number(element.height) || 100;
+      }
+    }
+    
+    // 计算元素的各种位置信息
+    const elementCenterX = elementX + elementWidth / 2;
+    const elementCenterY = elementY + elementHeight / 2;
+    const elementTop = elementY;
+    const elementBottom = elementY + elementHeight;
+    const elementLeft = elementX;
+    const elementRight = elementX + elementWidth;
+    
+    // 计算元素周围的可用空间
+    const spaceAboveElement = elementTop - margin;
+    const spaceBelowElement = containerHeight - elementBottom - margin;
+    const spaceLeftElement = elementLeft - margin;
+    const spaceRightElement = containerWidth - elementRight - margin;
+    
+    // 初始化工具栏位置变量
+    let finalTop, finalLeft;
+    
+    // 优化优先级：优先下方显示，避免遮挡元素
+    // 1. 优先下方显示（确保不遮挡元素）
+    if (spaceBelowElement > toolbarHeight) {
+      // 下方有足够空间
+      finalTop = elementBottom + margin;
+      finalLeft = elementCenterX - toolbarWidth / 2;
+    } else if (spaceAboveElement > toolbarHeight) {
+      // 2. 只有当下方空间不足且上方空间充足时，才显示在上方
+      finalTop = elementTop - toolbarHeight - margin;
+      finalLeft = elementCenterX - toolbarWidth / 2;
+    } else if (spaceLeftElement > toolbarWidth) {
+      // 3. 左侧有足够空间
+      finalTop = elementCenterY - toolbarHeight / 2;
+      finalLeft = elementLeft - toolbarWidth - margin;
+    } else if (spaceRightElement > toolbarWidth) {
+      // 4. 右侧有足够空间
+      finalTop = elementCenterY - toolbarHeight / 2;
+      finalLeft = elementRight + margin;
+    } else {
+      // 5. 所有方向都没有理想空间，优先显示在底部避免遮挡
+      finalTop = Math.max(margin, containerHeight - toolbarHeight - margin);
+      finalLeft = elementCenterX - toolbarWidth / 2;
+    }
+    
     // 添加用户拖拽偏移
-    top += toolbarOffset.y;
-    left += toolbarOffset.x;
-
-    // 应用最终边界检查
-    left = Math.max(10, Math.min(left, containerWidth - toolbarWidth - 10));
-    top = Math.max(10, Math.min(top, containerHeight - toolbarHeight - 10));
-
-    return { top, left };
+    finalTop += toolbarOffset.y;
+    finalLeft += toolbarOffset.x;
+    
+    // 应用最终边界检查，确保工具栏完全在视口内
+    finalLeft = Math.max(margin, Math.min(finalLeft, containerWidth - toolbarWidth - margin));
+    finalTop = Math.max(margin, Math.min(finalTop, containerHeight - toolbarHeight - margin));
+    
+    return { top: finalTop, left: finalLeft };
   };
 
   const position = getToolbarPosition();
 
-  // 响应式工具栏宽度 (用于样式)
-  const getResponsiveToolbarWidth = () => {
-    const containerWidth =
-      typeof window !== "undefined" ? window.innerWidth : 1000;
-    if (containerWidth < 400) return 240;
-    if (containerWidth < 600) return 280;
-    return 300;
-  };
+
 
   // 阻止所有内部事件冒泡到画布
   const handleToolbarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  // Add additional safety checks before rendering
+  if (!element) {
+    return null;
+  }
 
   return (
     <div
@@ -216,18 +217,16 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
-        width: getResponsiveToolbarWidth(),
         cursor: isToolbarDragging ? "grabbing" : "grab",
       }}
+      data-toolbar-element="true"
     >
       {/* 颜色选择器 */}
       <ColorPicker element={element} onUpdateElement={onUpdateElement} />
 
       {/* 边框颜色选择器 */}
       <BorderColorPicker element={element} onUpdateElement={onUpdateElement} />
-
-
-
+      
       {/* 边框宽度控制 */}
       <BorderWidthControl element={element} onUpdateElement={onUpdateElement} />
       {/* 圆角控制 */}
@@ -240,4 +239,14 @@ export const ElementToolbar: React.FC<ElementToolbarProps> = ({
     </div>
   );
 };
-export default ElementToolbar;
+// Export wrapped component with error boundary
+export default function ElementToolbar(props: ElementToolbarProps) {
+  return (
+    <ElementToolbarErrorBoundary>
+      <ElementToolbarImpl {...props} />
+    </ElementToolbarErrorBoundary>
+  );
+}
+
+// Export original implementation for testing/advanced usage
+export { ElementToolbarImpl };

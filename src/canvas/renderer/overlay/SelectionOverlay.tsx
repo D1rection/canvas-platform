@@ -7,7 +7,7 @@ interface SelectionOverlayProps {
   selectedIds: ID[];
   elements: Record<ID, CanvasElement>;
   viewport: ViewportState;
-  onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent) => void;
+  onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent<Element>) => void;
 }
 
 /**
