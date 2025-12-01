@@ -3,7 +3,6 @@ import type {
   CanvasRuntimeState,
   ID,
   Point,
-  ShapeElement,
   ViewportState,
   CanvasElement,
 } from "../../canvas/schema/model";
@@ -70,7 +69,7 @@ interface CanvasViewProps {
  * Canvas 视图组件
  *
  * 结构：
- * - elementsLayer：渲染所有元素（Shape）
+ * - elementsLayer：渲染所有可见元素（Shape、Image等）
  * - overlayLayer：渲染交互反馈（选中框、悬停、拖拽预览等）
  */
 
@@ -199,7 +198,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     [isDragging, cursor, onElementPointerDown, selection.selectedIds]
   );
 
-  const renderShape = React.useCallback(
+  const renderElement = React.useCallback(
     (el: any) => {
       const commonProps = {
         element: el,
@@ -223,8 +222,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         }
       }
       if (el.type === "image") {
-      return <ImageElement key={el.id} {...commonProps} />;
-    }
+        return <ImageElement key={el.id} {...commonProps} />;
+      }
       return null;
     },
     [
@@ -236,13 +235,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     ]
   );
 
-  const renderedShapes = React.useMemo(() => {
+  const renderedElements = React.useMemo(() => {
     return document.rootElementIds.map((id) => {
       const el = document.elements[id];
-      if (!el || el.type !== "shape" || !el.visible) return null;
-      return renderShape(el as ShapeElement);
+      if (!el || !el.visible) return null;
+      return renderElement(el);
     });
-  }, [document.rootElementIds, document.elements, renderShape]);
+  }, [document.rootElementIds, document.elements, renderElement]);
 
   const screenToWorld = (
     e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>
@@ -394,35 +393,25 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       onPointerUp={handleCanvasPointerUp}
       onWheel={handleWheel}
     >
-      <div>
-      {document.rootElementIds.map((id) => {
-        const el = document.elements[id];
-        if (el) {
-          return renderShape(el);
-        }
-        return null;
-      })}
-    </div>
-    
       <div className={styles.elementsLayer} ref={elementsLayerRef}>
-        {renderedShapes}
+        {renderedElements}
       </div>
 
       <div className={styles.overlayLayer} ref={overlayLayerRef}>
         <SelectionOverlay
-        selectedIds={selection.selectedIds}
-        elements={document.elements}
-        viewport={viewport}
-        onRotateHandlePointerDown={handleRotateHandlePointerDown}
-        onScaleHandlePointerDown={handleScaleHandlePointerDown}
-        onSelectionBoxPointerDown={(e) => {
-          // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
-          if (cursor !== "grab" && selection.selectedIds.length > 0 && dragTool.current) {
-            // 只有在非画布拖拽模式下，才使用元素拖拽工具
-            // 使用第一个选中的元素作为主ID，但传递所有选中的ID
-            const mainId = selection.selectedIds[0];
-            dragTool.current.handleElementPointerDown(mainId, e as React.PointerEvent<HTMLDivElement>, selection.selectedIds);
-            e.stopPropagation();
+          selectedIds={selection.selectedIds}
+          elements={document.elements}
+          viewport={viewport}
+          onRotateHandlePointerDown={handleRotateHandlePointerDown}
+          onScaleHandlePointerDown={handleScaleHandlePointerDown}
+          onSelectionBoxPointerDown={(e) => {
+            // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
+            if (cursor !== "grab" && selection.selectedIds.length > 0 && dragTool.current) {
+              // 只有在非画布拖拽模式下，才使用元素拖拽工具
+              // 使用第一个选中的元素作为主ID，但传递所有选中的ID
+              const mainId = selection.selectedIds[0];
+              dragTool.current.handleElementPointerDown(mainId, e as React.PointerEvent<HTMLDivElement>, selection.selectedIds);
+              e.stopPropagation();
           }
         }}
       />
