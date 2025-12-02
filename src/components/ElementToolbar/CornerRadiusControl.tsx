@@ -1,5 +1,5 @@
 // CornerRadiusControl.tsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import type { CanvasElement } from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
 
@@ -12,22 +12,29 @@ export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({
   element,
   onUpdateElement,
 }) => {
+  // 提前定义所有 hooks
+  const [localValue, setLocalValue] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const sliderRef = useRef<HTMLInputElement>(null);
+
   // 类型检查，只有支持圆角的元素才显示此控件
   const hasCornerRadius = element.type === "shape" && element.shape === "rect";
+
+  // 从元素样式中获取圆角值，并同步到 localValue
+  const cornerRadius =
+    "style" in element && element.style.cornerRadius
+      ? element.style.cornerRadius
+      : 0;
+
+  // 当 element 改变时，更新本地状态
+  useEffect(() => {
+    setLocalValue(cornerRadius);
+  }, [cornerRadius]);
 
   if (!hasCornerRadius) {
     return null;
   }
-
-  // 从元素样式中获取圆角值
-  const cornerRadius = 
-    "style" in element && element.style.cornerRadius
-      ? element.style.cornerRadius
-      : 0;
-  const [localValue, setLocalValue] = useState(cornerRadius);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const sliderRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (value: number) => {
     // 确保值在0-50范围内
@@ -54,7 +61,7 @@ export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({
     if (!isFocused) return;
 
     let delta = 0;
-    
+
     switch (e.key) {
       case 'ArrowLeft':
         delta = -1;
@@ -75,7 +82,7 @@ export const CornerRadiusControl: React.FC<CornerRadiusControlProps> = ({
     // 计算新值并应用边界限制（0-50）
     const newValue = Math.max(0, Math.min(localValue + delta, 50));
     handleChange(newValue);
-    
+
     // 对于箭头键，我们阻止默认行为以避免页面滚动
     e.preventDefault();
   };

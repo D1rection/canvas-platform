@@ -3,7 +3,11 @@ import { BorderColorPicker } from "./BorderColorPicker"; // 引入边框颜色�
 import { OpacitySlider } from "./OpacitySlider";
 import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
 import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控制
-import type { ID, CanvasElement, ShapeElement } from "../../canvas/schema/model";
+import type {
+  ID,
+  CanvasElement,
+  ShapeElement,
+} from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
 import React from "react";
 
@@ -46,26 +50,26 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
 }) => {
   // 如果提供了elements数组，优先使用它；否则使用单个element作为数组
   const selectedElements = elements.length > 0 ? elements : [element];
-  
+
   // 检查是否所有选中的元素都是矩形
-  const allElementsAreRectangles = selectedElements.every(el => 
-    el.type === 'shape' && (el as ShapeElement).shape === 'rect'
+  const allElementsAreRectangles = selectedElements.every(
+    (el) => el.type === "shape" && (el as ShapeElement).shape === "rect"
   );
-  
+
   // 注意：这个函数暂时未使用，但保留以备将来需要
   // const getCommonPropertyValue = <T extends keyof CanvasElement>(property: T): CanvasElement[T] | null => {
   //   if (selectedElements.length === 0) return null;
-  //   
+  //
   //   const firstValue = selectedElements[0][property];
   //   if (selectedElements.every(el => el[property] === firstValue)) {
   //     return firstValue;
   //   }
   //   return null;
   // };
-  
+
   // 批量更新选中的元素
   const batchUpdateElements = (updates: Partial<CanvasElement>) => {
-    selectedElements.forEach(el => {
+    selectedElements.forEach((el) => {
       onUpdateElement(el.id, updates);
     });
   };
@@ -73,7 +77,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
   const getToolbarPosition = () => {
     // 对于多个选中的元素，使用第一个元素来定位
     const targetElement = selectedElements[0];
-    
+
     if (!targetElement || !targetElement.transform) {
       // 如果没有元素，默认显示在视口顶部
       return { top: 10, left: 10 };
@@ -191,43 +195,43 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
           已选择 {selectedElements.length} 个元素
         </div>
       )}
-      
+
       {/* 颜色选择器 - 支持批量编辑 */}
-      <ColorPicker 
-        element={element} 
+      <ColorPicker
+        element={element}
         onUpdateElement={(id: string, updates: Partial<CanvasElement>) => {
           if (selectedElements.length > 1) {
             batchUpdateElements(updates);
           } else {
             onUpdateElement(id, updates);
           }
-        }} 
+        }}
       />
 
       {/* 边框颜色选择器 - 支持批量编辑 */}
-      <BorderColorPicker 
-        element={element} 
+      <BorderColorPicker
+        element={element}
         onUpdateElement={(id: string, updates: Partial<CanvasElement>) => {
           if (selectedElements.length > 1) {
             batchUpdateElements(updates);
           } else {
             onUpdateElement(id, updates);
           }
-        }} 
+        }}
       />
 
       {/* 边框宽度控制 - 支持批量编辑 */}
-      <BorderWidthControl 
-        element={element} 
+      <BorderWidthControl
+        element={element}
         onUpdateElement={(id: string, updates: Partial<CanvasElement>) => {
           if (selectedElements.length > 1) {
             batchUpdateElements(updates);
           } else {
             onUpdateElement(id, updates);
           }
-        }} 
+        }}
       />
-      
+
       {/* 圆角控制 - 仅当所有选中元素都是矩形时显示 */}
       {allElementsAreRectangles ? (
         <CornerRadiusControl
@@ -241,24 +245,25 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
           }}
         />
       ) : selectedElements.length > 1 ? (
-        <div className={styles.disabledControl} title="只有当选择的所有元素都是矩形时才能调整圆角">
+        <div
+          className={styles.disabledControl}
+          title="只有当选择的所有元素都是矩形时才能调整圆角"
+        >
           圆角 (仅矩形可用)
         </div>
-      ) : (
-        // 单个非矩形元素也不显示圆角控制
-        null
-      )}
-      
+      ) : // 单个非矩形元素也不显示圆角控制
+      null}
+
       {/* 透明度调节 - 支持批量编辑 */}
-      <OpacitySlider 
-        element={element} 
+      <OpacitySlider
+        element={element}
         onUpdateElement={(id: string, updates: Partial<CanvasElement>) => {
           if (selectedElements.length > 1) {
             batchUpdateElements(updates);
           } else {
             onUpdateElement(id, updates);
           }
-        }} 
+        }}
       />
     </div>
   );
@@ -271,6 +276,5 @@ export default function ElementToolbar(props: ElementToolbarProps) {
     </ElementToolbarErrorBoundary>
   );
 }
-
 // Export original implementation for testing/advanced usage
 export { ElementToolbarImpl };
