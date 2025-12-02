@@ -11,6 +11,12 @@ let marqueeGlobalListeners: {
   onPointerUp: (e: PointerEvent) => void;
 } | null = null;
 
+// 元素拖拽时的全局事件监听器状态
+let dragGlobalListeners: {
+  onPointerMove: (e: PointerEvent) => void;
+  onPointerUp: (e: PointerEvent) => void;
+} | null = null;
+
 /**
  * 初始化选择工具的拖拽依赖
  */
@@ -194,6 +200,58 @@ function cleanupMarqueeGlobalListeners() {
 }
 
 /**
+ * 设置元素拖拽的全局事件监听器
+ * - 解决拖拽元素时鼠标移出画布 / 浏览器，无法收到 pointerup 的问题
+ */
+function setupDragGlobalListeners(initialEv: PointerEvent) {
+  // 如果已经有监听器，先清理
+  cleanupDragGlobalListeners();
+
+  const onPointerMove = (e: PointerEvent) => {
+    // 只处理同一指针
+    if (e.pointerId !== initialEv.pointerId) return;
+    // 只有在仍然处于拖拽状态时才处理
+    if (!isElementBeingDragged()) return;
+
+    dragTool.handlePointerMove(e.clientX, e.clientY);
+  };
+
+  const onPointerUp = (e: PointerEvent) => {
+    // 只处理同一指针
+    if (e.pointerId !== initialEv.pointerId) return;
+
+    if (isElementBeingDragged()) {
+      dragTool.handlePointerUp();
+    }
+
+    // 清理全局监听器
+    cleanupDragGlobalListeners();
+  };
+
+  // 添加全局监听器
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
+  document.addEventListener("pointercancel", onPointerUp);
+
+  dragGlobalListeners = {
+    onPointerMove,
+    onPointerUp,
+  };
+}
+
+/**
+ * 清理元素拖拽的全局事件监听器
+ */
+function cleanupDragGlobalListeners() {
+  if (dragGlobalListeners) {
+    document.removeEventListener("pointermove", dragGlobalListeners.onPointerMove);
+    document.removeEventListener("pointerup", dragGlobalListeners.onPointerUp);
+    document.removeEventListener("pointercancel", dragGlobalListeners.onPointerUp);
+    dragGlobalListeners = null;
+  }
+}
+
+/**
  * 统一的元素拖拽开始处理函数
  */
 function handleElementDragStart(ctx: ToolContext, mainId: ID, elementIds: ID[], ev: PointerEvent) {
@@ -215,7 +273,12 @@ function handleElementDragStart(ctx: ToolContext, mainId: ID, elementIds: ID[], 
   // 使用 requestAnimationFrame 延迟执行，确保选中框已渲染
   requestAnimationFrame(() => {
     // 启动拖拽
-    dragTool.handleElementPointerDown(mainId, ev as any, elementIds);
+    const started = dragTool.handleElementPointerDown(mainId, ev as any, elementIds);
+
+    // 启动成功后，设置全局拖拽监听，避免鼠标拖出画布/浏览器时丢失事件
+    if (started) {
+      setupDragGlobalListeners(ev);
+    }
   });
 }
 
