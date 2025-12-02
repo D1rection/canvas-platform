@@ -105,6 +105,82 @@
   text-align: right;
 }
 
+/* 滤镜滑动条样式 - 与ElementToolbar保持一致 */
+.filterSlider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #ccc, #666);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 滤镜滑动条焦点状态 */
+.filterSlider:focus {
+  box-shadow: 0 0 0 2px rgba(69, 183, 209, 0.3);
+  background: linear-gradient(to right, #ccc, #45b7d1);
+}
+
+/* 滤镜滑动条拖拽状态 */
+.filterSliderDragging,
+.filterSlider[data-dragging="true"] {
+  background: linear-gradient(to right, #ccc, #3498db);
+}
+
+/* 自定义滤镜滑动条拇指样式 */
+.filterSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #666;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.filterSlider::-webkit-slider-thumb:hover,
+.filterSlider:focus::-webkit-slider-thumb {
+  background-color: #45b7d1;
+  transform: scale(1.1);
+}
+
+.filterSlider::-webkit-slider-thumb:active {
+  background-color: #3498db;
+  transform: scale(1.2);
+}
+
+.filterSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #666;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.filterSlider::-moz-range-thumb:hover,
+.filterSlider:focus::-moz-range-thumb {
+  background-color: #45b7d1;
+  transform: scale(1.1);
+}
+
+.filterSlider::-moz-range-thumb:active {
+  background-color: #3498db;
+  transform: scale(1.2);
+}
+
+/* 支持键盘操作的焦点样式 */
+.filterSlider:focus-visible {
+  outline: 2px solid #45b7d1;
+  outline-offset: 2px;
+}
+
 /* 预设控制区域 */
 .presetControlsSection {
   display: flex;

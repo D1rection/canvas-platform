@@ -4,7 +4,6 @@ import type { CanvasElement, ID, ShapeElement, ImageElement } from "../../../can
 import { OpacitySlider } from "../OpacitySlider";
 import { BorderColorPicker } from "../BorderColorPicker";
 import { BorderWidthControl } from "../BorderWidthControl";
-import { CornerRadiusControl } from "../CornerRadiusControl";
 import { FilterControls } from "./controls/FilterControls";
 import { PresetControls } from "./controls/PresetControls";
 import { ImageEditProvider } from "./contexts/ImageEditContext";
@@ -36,7 +35,6 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
         ...shapeElement.style,
         strokeColor: "#000000",
         strokeWidth: 0,
-        cornerRadius: 0,
       };
     }
 
@@ -221,13 +219,7 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
               onUpdateElement={onUpdateElement} 
             />
           </div>
-          <div className={styles.controlGroup}>
-            <label>圆角</label>
-            <CornerRadiusControl 
-              element={element} 
-              onUpdateElement={onUpdateElement} 
-            />
-          </div>
+
         </div>
       </div>
 
@@ -242,17 +234,24 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
       {/* 滤镜控制部分 */}
       <div className={styles.section}>
         <h3>滤镜效果</h3>
-        <FilterControls 
-          element={element} 
-          onUpdateElement={onUpdateElement} 
-        />
+        <div className={styles.filterControlsSection}>
+          <FilterControls 
+            element={element} 
+            onUpdateElement={onUpdateElement} 
+          />
+        </div>
       </div>
 
       {/* 预设部分 */}
-      <PresetControls 
-        element={element} 
-        onUpdateElement={onUpdateElement} 
-      />
+      <div className={styles.section}>
+        <h3>预设效果</h3>
+        <div className={styles.presetControlsSection}>
+          <PresetControls 
+            element={element} 
+            onUpdateElement={onUpdateElement} 
+          />
+        </div>
+      </div>
 
       {/* 操作按钮 */}
       <div className={styles.resetButtonContainer}>

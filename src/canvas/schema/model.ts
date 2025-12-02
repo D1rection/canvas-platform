@@ -271,6 +271,10 @@ export interface ImageElement extends ElementBase {
   size: Size;
   /** 应用在图片上的滤镜列表，按顺序叠加 */
   filters: ImageFilter[];
+  /** 边框颜色 */
+  borderColor?: string;
+  /** 边框宽度，单位与坐标系一致 */
+  borderWidth?: number;
 }
 
 /**
