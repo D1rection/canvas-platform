@@ -15,18 +15,27 @@ interface SelectionOverlayProps {
 
 /**
  * 计算旋转元素的真实边界顶点
+ * 注意：旋转是围绕元素的中心点进行的
  */
 function getElementCorners(transform: Transform, size: Size): Point[] {
   const { x, y, rotation, scaleX, scaleY } = transform;
   const { width, height } = size;
 
-  // 元素的四个角（相对于元素原点）
+  // 计算缩放后的实际尺寸
+  const scaledWidth = width * scaleX;
+  const scaledHeight = height * scaleY;
+
+  // 元素的四个角（相对于元素左上角）
   const localCorners = [
     { x: 0, y: 0 },
     { x: width, y: 0 },
     { x: width, y: height },
     { x: 0, y: height },
   ];
+
+  // 元素的中心点（相对于元素左上角，考虑缩放）
+  const centerX = scaledWidth / 2;
+  const centerY = scaledHeight / 2;
 
   const rad = rotation * Math.PI / 180;
   const cos = Math.cos(rad);
@@ -38,14 +47,19 @@ function getElementCorners(transform: Transform, size: Size): Point[] {
     let cx = corner.x * scaleX;
     let cy = corner.y * scaleY;
 
-    // 再应用旋转
-    const rx = cx * cos - cy * sin;
-    const ry = cx * sin + cy * cos;
+    // 将角点相对于中心点进行旋转
+    // 1. 平移到以中心为原点
+    const relativeX = cx - centerX;
+    const relativeY = cy - centerY;
 
-    // 最后应用平移
+    // 2. 应用旋转
+    const rotatedX = relativeX * cos - relativeY * sin;
+    const rotatedY = relativeX * sin + relativeY * cos;
+
+    // 3. 平移回原位置（加上中心点的世界坐标）
     return {
-      x: x + rx,
-      y: y + ry,
+      x: x + centerX + rotatedX,
+      y: y + centerY + rotatedY,
     };
   });
 }
