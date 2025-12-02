@@ -36,6 +36,12 @@ export interface ToolHandler {
     id: ID,
     ev: PointerEvent,
   ) => void;
+  /** 点击选中框 */
+  onSelectionBoxPointerDown?: (
+    ctx: ToolContext,
+    selectedIds: ID[],
+    ev: PointerEvent,
+  ) => void;
   /** 键盘事件 */
   onKeyDown?: (
     ctx: ToolContext,
@@ -73,4 +79,12 @@ export interface ToolContext {
     warning: (content: string) => void;
     info: (content: string) => void;
   };
+  /**
+   * 元素层 DOM 引用，用于拖拽预览等性能优化
+   */
+  elementsLayerRef?: { current: HTMLElement | null };
+  /**
+   * 覆盖层 DOM 引用，用于选中框操作
+   */
+  overlayLayerRef?: { current: HTMLElement | null };
 }

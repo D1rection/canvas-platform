@@ -21,6 +21,10 @@ function App({ canvasContainer }: AppProps) {
   );
   // 画布平移预览
   const panPreviewApplyRef = useRef<((offset: { dx: number; dy: number } | null) => void) | null>(null);
+  // 元素层 DOM 引用，用于拖拽预览
+  const elementsLayerRef = useRef<HTMLElement | null>(null);
+  // 覆盖层 DOM 引用，用于选中框操作
+  const overlayLayerRef = useRef<HTMLElement | null>(null);
 
   // 设置工具
   const setTool = (tool: ToolType) => {
@@ -84,6 +88,8 @@ function App({ canvasContainer }: AppProps) {
         warning: (content: string) => Message.warning(content),
         info: (content: string) => Message.info(content),
       },
+      elementsLayerRef: elementsLayerRef,
+      overlayLayerRef: overlayLayerRef,
     }),
     [editorService, currentTool],
   );
@@ -118,6 +124,14 @@ function App({ canvasContainer }: AppProps) {
     e: React.PointerEvent<HTMLDivElement>,
   ) => {
     toolHandler.onElementPointerDown?.(toolContext, id, e.nativeEvent);
+  };
+
+  // 选中框鼠标点击
+  const handleSelectionBoxPointerDown = (
+    selectedIds: ID[],
+    e: React.PointerEvent<Element>,
+  ) => {
+    toolHandler.onSelectionBoxPointerDown?.(toolContext, selectedIds, e.nativeEvent);
   };
 
   // 鼠标滚轮
@@ -173,6 +187,16 @@ function App({ canvasContainer }: AppProps) {
     panPreviewApplyRef.current = apply;
   };
 
+  // 注册元素层 DOM 引用回调
+  const handleRegisterElementsLayerRef = (ref: React.RefObject<HTMLDivElement | null>) => {
+    elementsLayerRef.current = ref.current;
+  };
+
+  // 注册覆盖层 DOM 引用回调
+  const handleRegisterOverlayLayerRef = (ref: React.RefObject<HTMLDivElement | null>) => {
+    overlayLayerRef.current = ref.current;
+  };
+
   // 全局键盘事件监听
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -220,10 +244,13 @@ function App({ canvasContainer }: AppProps) {
                 state={canvasState}
                 cursor={toolHandler.cursor}
                 onRegisterPanPreview={handleRegisterPanPreview}
+                onRegisterElementsLayerRef={handleRegisterElementsLayerRef}
+                onRegisterOverlayLayerRef={handleRegisterOverlayLayerRef}
                 onCanvasPointerDown={handleCanvasPointerDown}
                 onCanvasPointerMove={handleCanvasPointerMove}
                 onCanvasPointerUp={handleCanvasPointerUp}
                 onElementPointerDown={handleElementPointerDown}
+                onSelectionBoxPointerDown={handleSelectionBoxPointerDown}
                 onWheel={handleWheel}
                 onUpdateElement={handleUpdateElement}
               />

@@ -3,7 +3,6 @@ import type {
   CanvasRuntimeState,
   ID,
   Point,
-  ShapeElement,
   ViewportState,
   CanvasElement,
 } from "../../canvas/schema/model";
@@ -18,6 +17,7 @@ import ElementToolbar from "../ElementToolbar"; // Import the default wrapped co
 import styles from "./CanvasView.module.css";
 import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 import { RotateTool } from "../../canvas/tools/RotateTool";
+import { ScaleTool, ScaleDirection } from "../../canvas/tools/ScaleTool";
 
 interface CanvasViewProps {
   state: CanvasRuntimeState;
@@ -55,13 +55,29 @@ interface CanvasViewProps {
     id: ID | undefined,
     e: React.PointerEvent<Element>
   ) => void;
+  
+  /** 缩放控制点鼠标点击 */
+  onScaleHandlePointerDown?: (
+    id: ID | undefined,
+    direction: number,
+    e: React.PointerEvent<HTMLElement>
+  ) => void;
+  /** 选中框鼠标点击 */
+  onSelectionBoxPointerDown?: (
+    selectedIds: ID[],
+    e: React.PointerEvent<Element>
+  ) => void;
+  /** 注册元素层 DOM 引用回调 */
+  onRegisterElementsLayerRef?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+  /** 注册覆盖层 DOM 引用回调 */
+  onRegisterOverlayLayerRef?: (ref: React.RefObject<HTMLDivElement | null>) => void;
 }
 
 /**
  * Canvas 视图组件
  *
  * 结构：
- * - elementsLayer：渲染所有元素（Shape）
+ * - elementsLayer：渲染所有可见元素（Shape、Image等）
  * - overlayLayer：渲染交互反馈（选中框、悬停、拖拽预览等）
  */
 
@@ -76,6 +92,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   onUpdateElement,
   onWheel,
   onRotateHandlePointerDown,
+  onScaleHandlePointerDown,
+  onSelectionBoxPointerDown,
+  onRegisterElementsLayerRef,
+  onRegisterOverlayLayerRef,
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
@@ -111,14 +131,18 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const viewportRef = useRef(viewport);
   // 旋转工具实例
   const rotateTool = useRef<RotateTool | null>(null);
+  // 缩放工具实例
+  const scaleTool = useRef<ScaleTool | null>(null);
 
   // 更新document和viewport的ref，以便在事件处理函数中使用最新的值
   useEffect(() => {
     documentRef.current = document;
     viewportRef.current = viewport;
     
-    // 更新旋转工具的依赖项
-    if (rotateTool.current) {
+    // 初始化或更新旋转工具
+    if (!rotateTool.current) {
+      rotateTool.current = new RotateTool(onUpdateElement, documentRef, viewportRef, { root: styles.root });
+    } else {
       rotateTool.current.updateDependencies(
         onUpdateElement,
         documentRef,
@@ -126,25 +150,24 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         { root: styles.root }
       );
     }
+    
+    // 初始化或更新缩放工具
+    if (!scaleTool.current) {
+      scaleTool.current = new ScaleTool(onUpdateElement, documentRef, viewportRef);
+    } else {
+      scaleTool.current.updateDependencies(
+        onUpdateElement,
+        documentRef,
+        viewportRef
+      );
+    }
   }, [document, viewport, onUpdateElement, styles.root]);
   
-  // 初始化旋转工具
-  useEffect(() => {
-    rotateTool.current = new RotateTool(
-      onUpdateElement,
-      documentRef,
-      viewportRef,
-      { root: styles.root }
-    );
-    
-    // 清理函数
-    return () => {
-      // 可以在这里添加清理旋转工具的代码
-    };
-  }, []);
+  
+  // 旋转工具已经在上面的useEffect中初始化和更新
 
   const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
-    if (!id || !document.elements[id]) {
+    if (!id) {
       return;
     }
 
@@ -155,14 +178,17 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   const handleShapePointerDown = React.useCallback(
     (id: string, e: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDragging && cursor === "grab") setIsDragging(true);
+      // 画布拖拽模式（cursor === 'grab'）不应触发元素拖拽工具
+      if (!isDragging && cursor === "grab") {
+        setIsDragging(true);
+      }
       onElementPointerDown?.(id, e);
       e.stopPropagation();
     },
     [isDragging, cursor, onElementPointerDown]
   );
 
-  const renderShape = React.useCallback(
+  const renderElement = React.useCallback(
     (el: any) => {
       const commonProps = {
         element: el,
@@ -186,8 +212,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         }
       }
       if (el.type === "image") {
-      return <ImageElement key={el.id} {...commonProps} />;
-    }
+        return <ImageElement key={el.id} {...commonProps} />;
+      }
       return null;
     },
     [
@@ -199,13 +225,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     ]
   );
 
-  const renderedShapes = React.useMemo(() => {
+  const renderedElements = React.useMemo(() => {
     return document.rootElementIds.map((id) => {
       const el = document.elements[id];
-      if (!el || el.type !== "shape" || !el.visible) return null;
-      return renderShape(el as ShapeElement);
+      if (!el || !el.visible) return null;
+      return renderElement(el);
     });
-  }, [document.rootElementIds, document.elements, renderShape]);
+  }, [document.rootElementIds, document.elements, renderElement]);
 
   const screenToWorld = (
     e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>
@@ -264,19 +290,37 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent<Element>) => {
     // 使用旋转工具处理旋转控制点的点击事件
     if (rotateTool.current) {
+      // 进行类型断言以匹配rotateTool的期望类型
       rotateTool.current.handleRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
     }
     
     // 通知外部处理旋转开始
     if (onRotateHandlePointerDown) {
-      onRotateHandlePointerDown(id, e);
+      onRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
+    }
+  };
+  
+  // 处理缩放控制点的指针按下事件
+  const handleScaleHandlePointerDown = (id: ID | undefined, direction: number, e: React.PointerEvent<Element>) => {
+    // 使用缩放工具处理缩放控制点的点击事件
+    if (scaleTool.current) {
+      // 进行类型断言以匹配scaleTool的期望类型
+      scaleTool.current.handleScaleHandlePointerDown(id, direction as ScaleDirection, e as React.PointerEvent<HTMLElement>);
+    }
+    
+    // 通知外部处理缩放开始
+    if (typeof onScaleHandlePointerDown === 'function') {
+      onScaleHandlePointerDown(id, direction, e as React.PointerEvent<HTMLElement>);
     }
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     // 如果正在旋转，不执行正常的画布移动处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
-    
+
+    // 如果正在缩放，不执行正常的画布移动处理
+    if (scaleTool.current && scaleTool.current.isScaling()) return;
+
     if (!onCanvasPointerMove) return;
     const point = screenToWorld(e);
     onCanvasPointerMove(point, e);
@@ -285,9 +329,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     // 如果正在旋转，不执行正常的画布松开处理
     if (rotateTool.current && rotateTool.current.isRotating()) return;
-    
+
+    // 如果正在缩放，不执行正常的画布松开处理
+    if (scaleTool.current && scaleTool.current.isScaling()) return;
+
     if (!onCanvasPointerUp) return;
     if (isDragging) setIsDragging(false);
+
     const point = screenToWorld(e);
     onCanvasPointerUp(point, e);
   };
@@ -324,6 +372,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     });
   }, [onRegisterPanPreview]);
 
+  // 注册元素层 DOM 引用
+  useEffect(() => {
+    if (onRegisterElementsLayerRef) {
+      onRegisterElementsLayerRef(elementsLayerRef);
+    }
+  }, [onRegisterElementsLayerRef]);
+
+  // 注册覆盖层 DOM 引用
+  useEffect(() => {
+    if (onRegisterOverlayLayerRef) {
+      onRegisterOverlayLayerRef(overlayLayerRef);
+    }
+  }, [onRegisterOverlayLayerRef]);
+
   return (
     <div
       className={styles.root}
@@ -333,18 +395,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       onPointerUp={handleCanvasPointerUp}
       onWheel={handleWheel}
     >
-      <div>
-      {document.rootElementIds.map((id) => {
-        const el = document.elements[id];
-        if (el) {
-          return renderShape(el);
-        }
-        return null;
-      })}
-    </div>
-    
       <div className={styles.elementsLayer} ref={elementsLayerRef}>
-        {renderedShapes}
+        {renderedElements}
       </div>
 
       <div className={styles.overlayLayer} ref={overlayLayerRef}>
@@ -353,17 +405,26 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           elements={document.elements}
           viewport={viewport}
           onRotateHandlePointerDown={handleRotateHandlePointerDown}
-        />
+          onScaleHandlePointerDown={handleScaleHandlePointerDown}
+          onSelectionBoxPointerDown={(e: React.PointerEvent<Element>) => {
+            // 调用父组件的选中框拖拽处理
+            if (onSelectionBoxPointerDown) {
+              onSelectionBoxPointerDown(selection.selectedIds, e);
+            } else {
+              e.stopPropagation();
+            }
+          }}
+      />
 
         {/* 渲染工具栏时确保有有效的元素 */}
-        {selection.selectedIds.length > 0 && (
+        {selection.selectedIds.length > 0 && document.elements[selection.selectedIds[0]] && (
           <ElementToolbar
             element={document.elements[selection.selectedIds[0]]}
             elements={selection.selectedIds.map(id => document.elements[id]).filter(Boolean) as CanvasElement[]}
             onUpdateElement={handleUpdateElement}
           />
         )}
-        {state.marqueeSelection && (
+        {state.marqueeSelection && state.marqueeSelection.startPoint && state.marqueeSelection.endPoint && (
           <MarqueeSelectionBox
             startPoint={state.marqueeSelection.startPoint}
             endPoint={state.marqueeSelection.endPoint}

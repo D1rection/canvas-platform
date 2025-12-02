@@ -5,6 +5,7 @@ interface MultiSelectionBoxProps {
   top: number;
   width: number;
   height: number;
+  onPointerDown?: (e: React.PointerEvent<Element>) => void;
 }
 
 /**
@@ -16,6 +17,7 @@ export const MultiSelectionBox: React.FC<MultiSelectionBoxProps> = ({
   top,
   width,
   height,
+  onPointerDown,
 }) => {
   const handleSize = 10;
   const handleOffset = -handleSize / 2;
@@ -31,10 +33,16 @@ export const MultiSelectionBox: React.FC<MultiSelectionBoxProps> = ({
   };
 
   /**
-   * 阻止事件冒泡，避免点击选中框时触发画布的 pointerdown
+   * 处理选中框的指针按下事件
    */
   const handlePointerDown = (e: React.PointerEvent) => {
+    // 阻止事件冒泡，避免触发画布的 pointerdown
     e.stopPropagation();
+    
+    // 调用外部传入的回调函数
+    if (onPointerDown) {
+      onPointerDown(e);
+    }
   };
 
   return (
@@ -51,6 +59,7 @@ export const MultiSelectionBox: React.FC<MultiSelectionBoxProps> = ({
         zIndex: 40,
       }}
       onPointerDown={handlePointerDown}
+      data-selection-box="true"
     >
       {/* 四条边的中心控制点 */}
       {/* 上边中心 */}

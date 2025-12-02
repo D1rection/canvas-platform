@@ -1,4 +1,5 @@
 import type { ToolHandler } from "./types";
+// 移除未使用的导入
 
 export const imageTool: ToolHandler = {
   cursor: "crosshair",
