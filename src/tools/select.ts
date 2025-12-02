@@ -1,9 +1,15 @@
 import type { ToolHandler, ToolContext } from "./types";
-import type { ID } from "../canvas/schema/model";
+import type { ID, Point } from "../canvas/schema/model";
 import { DragTool } from "../canvas/tools/DragTool";
 
 // 创建选择工具专用的拖拽工具实例
 const dragTool = new DragTool();
+
+// 框选时的全局事件监听器状态
+let marqueeGlobalListeners: {
+  onPointerMove: (e: PointerEvent) => void;
+  onPointerUp: (e: PointerEvent) => void;
+} | null = null;
 
 /**
  * 初始化选择工具的拖拽依赖
@@ -98,11 +104,95 @@ function removeContextMenu(menu: HTMLElement | null) {
 }
 
 /**
- * 选择工具
- *
- * - 点击元素：选中该元素
- * - 点击画布空白：清空选区
+ * 将屏幕坐标转换为世界坐标
  */
+function screenToWorld(
+  clientX: number,
+  clientY: number,
+  canvasElement: HTMLElement | null,
+  viewport: { x: number; y: number; scale: number }
+): Point | null {
+  if (!canvasElement) return null;
+  
+  const rect = canvasElement.getBoundingClientRect();
+  const screenX = clientX - rect.left;
+  const screenY = clientY - rect.top;
+  const scale = viewport.scale || 1;
+  
+  return {
+    x: viewport.x + screenX / scale,
+    y: viewport.y + screenY / scale,
+  };
+}
+
+/**
+ * 设置框选的全局事件监听器
+ */
+function setupMarqueeGlobalListeners(ctx: ToolContext, initialEv: PointerEvent) {
+  // 如果已经有监听器，先清理
+  cleanupMarqueeGlobalListeners();
+  
+  // 获取 canvas 元素（通过 overlayLayerRef 或 elementsLayerRef 的父元素）
+  const canvasElement = 
+    ctx.overlayLayerRef?.current?.parentElement ||
+    ctx.elementsLayerRef?.current?.parentElement ||
+    null;
+  
+  if (!canvasElement) {
+    console.warn('无法找到 canvas 元素，无法设置全局监听器');
+    return;
+  }
+  
+  const onPointerMove = (e: PointerEvent) => {
+    // 只处理主指针（通常是鼠标左键）
+    if (e.pointerId !== initialEv.pointerId) return;
+    
+    const state = ctx.editor.getState();
+    const point = screenToWorld(e.clientX, e.clientY, canvasElement, state.viewport);
+    
+    if (point && state.marqueeSelection?.startPoint) {
+      ctx.editor.updateMarqueeSelection(point);
+    }
+  };
+  
+  const onPointerUp = (e: PointerEvent) => {
+    // 只处理主指针
+    if (e.pointerId !== initialEv.pointerId) return;
+    
+    const state = ctx.editor.getState();
+    const point = screenToWorld(e.clientX, e.clientY, canvasElement, state.viewport);
+    
+    if (point && state.marqueeSelection?.startPoint) {
+      ctx.editor.finishMarqueeSelection(point);
+    }
+    
+    // 清理全局监听器
+    cleanupMarqueeGlobalListeners();
+  };
+  
+  // 添加全局监听器
+  document.addEventListener('pointermove', onPointerMove);
+  document.addEventListener('pointerup', onPointerUp);
+  document.addEventListener('pointercancel', onPointerUp); // 处理指针取消事件
+  
+  marqueeGlobalListeners = {
+    onPointerMove,
+    onPointerUp,
+  };
+}
+
+/**
+ * 清理框选的全局事件监听器
+ */
+function cleanupMarqueeGlobalListeners() {
+  if (marqueeGlobalListeners) {
+    document.removeEventListener('pointermove', marqueeGlobalListeners.onPointerMove);
+    document.removeEventListener('pointerup', marqueeGlobalListeners.onPointerUp);
+    document.removeEventListener('pointercancel', marqueeGlobalListeners.onPointerUp);
+    marqueeGlobalListeners = null;
+  }
+}
+
 /**
  * 统一的元素拖拽开始处理函数
  */
@@ -129,6 +219,15 @@ function handleElementDragStart(ctx: ToolContext, mainId: ID, elementIds: ID[], 
   });
 }
 
+
+/**
+ * 选择工具
+ *
+ * - 点击元素：选中该元素
+ * - 框选元素：框选元素
+ * - 拖拽元素：拖拽元素
+ * - 点击画布空白：清空选区
+ */
 export const selectTool: ToolHandler = {
   cursor: "default",
   onElementPointerDown: (ctx, id, ev) => {
@@ -147,7 +246,7 @@ export const selectTool: ToolHandler = {
     }
   },
 
-  onCanvasPointerDown: (ctx, point) => {
+  onCanvasPointerDown: (ctx, point, ev) => {
     // 点击空白区域时清空选区（只有在不拖拽时）
     if (!isElementBeingDragged()) {
       const state = ctx.editor.getState();
@@ -156,6 +255,9 @@ export const selectTool: ToolHandler = {
       }
       // 框选区域起始
       ctx.editor.startMarqueeSelection(point);
+      
+      // 添加全局指针事件监听器，确保即使指针移出画布也能正确结束框选
+      setupMarqueeGlobalListeners(ctx, ev);
     }
   },
 
@@ -178,6 +280,8 @@ export const selectTool: ToolHandler = {
     // 然后完成框选
     else {
       ctx.editor.finishMarqueeSelection(point);
+      // 清理全局监听器
+      cleanupMarqueeGlobalListeners();
     }
   },
 
