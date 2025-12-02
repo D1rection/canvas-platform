@@ -41,6 +41,8 @@ export class ScaleTool {
   private onUpdateElementCallback: ((id: ID, updates: Partial<CanvasElement>) => void) | undefined;
   private documentRef: { current: { elements: Record<ID, CanvasElement> } } | undefined;
   private viewportRef: { current: { x: number; y: number; scale: number } } | undefined;
+  // 添加缩放结束回调
+  public onScaleEnd?: () => void;
 
   /**
    * 初始化缩放工具
@@ -320,6 +322,11 @@ export class ScaleTool {
     
     // 恢复鼠标样式为默认状态
     document.body.style.cursor = '';
+    
+    // 触发缩放结束回调
+    if (this.onScaleEnd) {
+      this.onScaleEnd();
+    }
   }
 
   /**

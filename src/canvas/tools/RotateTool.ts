@@ -20,6 +20,8 @@ export class RotateTool {
   private documentRef: { current: { elements: Record<ID, CanvasElement> } } | undefined;
   private viewportRef: { current: { x: number; y: number; scale: number } } | undefined;
   private stylesRef: { root: string } | undefined;
+  // 添加旋转结束回调
+  public onRotateEnd?: () => void;
 
   /**
    * 初始化旋转工具
@@ -204,6 +206,11 @@ export class RotateTool {
     
     // 恢复鼠标样式为默认状态
     document.body.style.cursor = '';
+    
+    // 触发旋转结束回调
+    if (this.onRotateEnd) {
+      this.onRotateEnd();
+    }
   }
 
   /**

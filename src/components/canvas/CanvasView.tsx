@@ -125,6 +125,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   // 是否正在拖拽画布
   const [isDragging, setIsDragging] = useState(false);
+  // 是否正在进行编辑操作（拖拽、缩放、旋转）
+  const [isEditing, setIsEditing] = useState(false);
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = useRef<HTMLDivElement | null>(null);
   const documentRef = useRef(document);
@@ -245,11 +247,29 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     };
   };
 
+  // 检测是否为元素拖拽操作
+  const isElementDragOperation = (e: React.PointerEvent<HTMLDivElement>): boolean => {
+    const target = e.target as HTMLElement;
+    // 检查是否点击了选中元素或选择框
+    return Boolean(
+      selection.selectedIds.length > 0 &&
+      !target.closest(`.${styles.toolbarWrapper}`) &&
+      !target.closest('[data-toolbar-element="true"]') &&
+      (target.closest('[class*="selection"]') || 
+       target.closest('[data-element-id]'))
+    );
+  };
+
   const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
 
     if (e.button !== 0) {
       return;
+    }
+
+    // 如果是元素拖拽操作，设置编辑状态
+    if (isElementDragOperation(e)) {
+      setIsEditing(true);
     }
 
     // 增强的工具栏相关元素检测
@@ -288,10 +308,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   // 处理旋转控制点的指针按下事件
   const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent<Element>) => {
+    // 设置编辑状态为true
+    setIsEditing(true);
+    
     // 使用旋转工具处理旋转控制点的点击事件
     if (rotateTool.current) {
       // 进行类型断言以匹配rotateTool的期望类型
       rotateTool.current.handleRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
+      
+      // 监听旋转结束事件
+      const originalOnRotateEnd = rotateTool.current.onRotateEnd;
+      rotateTool.current.onRotateEnd = () => {
+        if (originalOnRotateEnd) originalOnRotateEnd();
+        setIsEditing(false);
+      };
     }
     
     // 通知外部处理旋转开始
@@ -302,10 +332,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   
   // 处理缩放控制点的指针按下事件
   const handleScaleHandlePointerDown = (id: ID | undefined, direction: number, e: React.PointerEvent<Element>) => {
+    // 设置编辑状态为true
+    setIsEditing(true);
+    
     // 使用缩放工具处理缩放控制点的点击事件
     if (scaleTool.current) {
       // 进行类型断言以匹配scaleTool的期望类型
       scaleTool.current.handleScaleHandlePointerDown(id, direction as ScaleDirection, e as React.PointerEvent<HTMLElement>);
+      
+      // 监听缩放结束事件
+      const originalOnScaleEnd = scaleTool.current.onScaleEnd;
+      scaleTool.current.onScaleEnd = () => {
+        if (originalOnScaleEnd) originalOnScaleEnd();
+        setIsEditing(false);
+      };
     }
     
     // 通知外部处理缩放开始
@@ -335,6 +375,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
     if (!onCanvasPointerUp) return;
     if (isDragging) setIsDragging(false);
+    
+    // 重置编辑状态
+    if (isEditing) {
+      setIsEditing(false);
+    }
 
     const point = screenToWorld(e);
     onCanvasPointerUp(point, e);
@@ -407,12 +452,22 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           onRotateHandlePointerDown={handleRotateHandlePointerDown}
           onScaleHandlePointerDown={handleScaleHandlePointerDown}
           onSelectionBoxPointerDown={(e: React.PointerEvent<Element>) => {
+            // 设置编辑状态为true，表示开始拖拽操作
+            setIsEditing(true);
+            
             // 调用父组件的选中框拖拽处理
             if (onSelectionBoxPointerDown) {
               onSelectionBoxPointerDown(selection.selectedIds, e);
             } else {
               e.stopPropagation();
             }
+            
+            // 监听全局pointerup事件以检测拖拽结束
+            const handleGlobalPointerUp = () => {
+              setIsEditing(false);
+              globalThis.document.removeEventListener('pointerup', handleGlobalPointerUp);
+            };
+            globalThis.document.addEventListener('pointerup', handleGlobalPointerUp);
           }}
       />
 
@@ -422,6 +477,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             element={document.elements[selection.selectedIds[0]]}
             elements={selection.selectedIds.map(id => document.elements[id]).filter(Boolean) as CanvasElement[]}
             onUpdateElement={handleUpdateElement}
+            isEditing={isEditing}
+            viewport={viewport}
           />
         )}
         {state.marqueeSelection && state.marqueeSelection.startPoint && state.marqueeSelection.endPoint && (

@@ -15,6 +15,8 @@ interface ElementToolbarProps {
   element: CanvasElement; // 保持向后兼容，用于单个元素选择
   elements?: CanvasElement[]; // 新增：多个选中的元素
   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
+  isEditing?: boolean; // 新增：编辑状态标志
+  viewport?: { scale: number }; // 新增：视口信息，用于处理缩放
 }
 
 // Error Boundary Component
@@ -47,6 +49,8 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
   element,
   elements = [],
   onUpdateElement,
+  isEditing = false,
+  viewport,
 }) => {
   // 如果提供了elements数组，优先使用它；否则使用单个element作为数组
   const selectedElements = elements.length > 0 ? elements : [element];
@@ -79,8 +83,15 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       return { x: 0, y: 0, width: 100, height: 100 };
     }
 
-    const x = element.transform.x;
-    const y = element.transform.y;
+    // 获取视口缩放比例，默认值为1
+    const viewportScale = viewport?.scale || 1;
+    
+    // 元素的原始坐标和变换
+    const elementX = element.transform.x;
+    const elementY = element.transform.y;
+    // 获取元素的缩放比例，如果没有设置则默认为1
+    const elementScaleX = element.transform.scaleX || 1;
+    const elementScaleY = element.transform.scaleY || 1;
     let width = 100; // 默认宽度
     let height = 100; // 默认高度
 
@@ -96,7 +107,23 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       }
     }
 
-    return { x, y, width, height };
+    // 应用元素自身的缩放比例
+    width *= elementScaleX;
+    height *= elementScaleY;
+    
+    // 将坐标转换为屏幕坐标系（考虑视口缩放）
+    const screenX = elementX * viewportScale;
+    const screenY = elementY * viewportScale;
+    const screenWidth = width * viewportScale;
+    const screenHeight = height * viewportScale;
+
+    // 返回在屏幕坐标系中的元素边界
+    return { 
+      x: screenX, 
+      y: screenY, 
+      width: screenWidth, 
+      height: screenHeight 
+    };
   };
 
   // 计算工具栏位置（智能定位系统：优先下方显示，避免遮挡元素）
@@ -109,19 +136,23 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const toolbarWidth = 300;
     const toolbarHeight = 80;
     const margin = 10;
-    const containerWidth =
-      typeof window !== "undefined" ? window.innerWidth : 1000;
-    const containerHeight =
-      typeof window !== "undefined" ? window.innerHeight : 600;
+    const containerWidth = typeof window !== "undefined" ? window.innerWidth : 1000;
+    const containerHeight = typeof window !== "undefined" ? window.innerHeight : 600;
 
+    // 获取所有选中元素的边界
+    const allBounds = selectedElements.map(getElementBounds);
+    
     // 计算所有选中元素的边界框
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
+    let totalX = 0;
+    let totalY = 0;
 
-    selectedElements.forEach(element => {
-      const bounds = getElementBounds(element);
+    allBounds.forEach(bounds => {
+      totalX += bounds.x;
+      totalY += bounds.y;
       minX = Math.min(minX, bounds.x);
       minY = Math.min(minY, bounds.y);
       maxX = Math.max(maxX, bounds.x + bounds.width);
@@ -129,51 +160,61 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     });
 
     // 计算边界框的中心点和其他位置信息
-    const boundsWidth = maxX - minX;
-    const boundsCenterX = minX + boundsWidth / 2;
+    const boundsCenterX = (minX + maxX) / 2;
+    const boundsCenterY = (minY + maxY) / 2;
     const boundsTop = minY;
     const boundsBottom = maxY;
+    
+    // 边界检查函数：确保目标位置不会超出视口
+    const clampX = (x: number) => Math.max(margin, Math.min(x, containerWidth - toolbarWidth - margin));
+    const clampY = (y: number) => Math.max(margin, Math.min(y, containerHeight - toolbarHeight - margin));
+    
+    // 重叠检测函数：检查工具栏是否与任何元素重叠
+    const checkOverlap = (top: number, left: number, height: number, width: number) => {
+      // 检查与每个元素的边界是否重叠
+      return allBounds.some(bounds => {
+        const rect1 = { left, top, right: left + width, bottom: top + height };
+        const rect2 = { 
+          left: bounds.x, 
+          top: bounds.y, 
+          right: bounds.x + bounds.width, 
+          bottom: bounds.y + bounds.height 
+        };
+        
+        // 矩形重叠检测算法
+        return !(rect1.right < rect2.left || 
+                 rect1.left > rect2.right || 
+                 rect1.bottom < rect2.top || 
+                 rect1.top > rect2.bottom);
+      });
+    };
+    
+    // 计算可能的位置，包括缩放视口适配
+    const abovePosition = boundsTop - toolbarHeight - margin;
+    const positions = [
+      { top: boundsBottom + margin, left: boundsCenterX - toolbarWidth / 2, name: 'below' }, // 元素下方
+      { top: abovePosition, left: boundsCenterX - toolbarWidth / 2, name: 'above' }, // 元素上方
+      { top: boundsCenterY - toolbarHeight / 2, left: maxX + margin, name: 'right' }, // 元素右侧居中
+      { top: boundsCenterY - toolbarHeight / 2, left: minX - toolbarWidth - margin, name: 'left' }, // 元素左侧居中
+      { top: containerHeight - toolbarHeight - margin * 2, left: containerWidth / 2 - toolbarWidth / 2, name: 'bottom-center' }, // 视口底部中央
+      { top: margin * 2, left: containerWidth / 2 - toolbarWidth / 2, name: 'top-center' } // 视口顶部中央
+    ];
 
-    // 计算边界框周围的可用空间
-    const spaceAboveBounds = boundsTop - margin;
-    const spaceBelowBounds = containerHeight - boundsBottom - margin;
-
-    // 初始化工具栏位置变量
-    let finalTop: number, finalLeft: number;
-
-    // 智能定位算法：优先下方显示，避免遮挡选中的元素
-    // 1. 优先下方显示（确保不遮挡元素）
-    if (spaceBelowBounds >= toolbarHeight) {
-      // 下方有足够空间
-      finalTop = boundsBottom + margin;
-      finalLeft = boundsCenterX - toolbarWidth / 2;
-    } else if (spaceAboveBounds >= toolbarHeight) {
-      // 2. 当下方空间不足且上方空间充足时，显示在上方
-      finalTop = boundsTop - toolbarHeight - margin;
-      finalLeft = boundsCenterX - toolbarWidth / 2;
-    } else {
-      // 3. 如果上下空间都不足，优先选择空间较大的方向
-      if (spaceBelowBounds > spaceAboveBounds) {
-        // 下方空间相对较大
-        finalTop = boundsBottom + margin;
-      } else {
-        // 上方空间相对较大
-        finalTop = boundsTop - toolbarHeight - margin;
+    // 筛选有效的位置（在视口内且不重叠）
+    for (const pos of positions) {
+      const clampedLeft = clampX(pos.left);
+      const clampedTop = clampY(pos.top);
+      
+      if (!checkOverlap(clampedTop, clampedLeft, toolbarHeight, toolbarWidth)) {
+        return { top: clampedTop, left: clampedLeft };
       }
-      finalLeft = boundsCenterX - toolbarWidth / 2;
     }
-
-    // 应用最终边界检查，确保工具栏完全在视口内
-    finalLeft = Math.max(
-      margin,
-      Math.min(finalLeft, containerWidth - toolbarWidth - margin)
-    );
-    finalTop = Math.max(
-      margin,
-      Math.min(finalTop, containerHeight - toolbarHeight - margin)
-    );
-
-    return { top: finalTop, left: finalLeft };
+    
+    // 如果所有位置都重叠，强制放在底部中央（这是最后的备选方案）
+    return { 
+      top: containerHeight - toolbarHeight - margin * 2, 
+      left: containerWidth / 2 - toolbarWidth / 2 
+    };
   };
 
   const position = getToolbarPosition();
@@ -188,14 +229,21 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     return null;
   }
 
+  // 根据编辑状态控制工具栏的显示
+  // 使用opacity和pointerEvents实现平滑的显示/隐藏效果，避免视觉闪烁
+  const toolbarStyle: React.CSSProperties = {
+    top: `${position.top}px`,
+    left: `${position.left}px`,
+    opacity: isEditing ? 0 : 1,
+    pointerEvents: isEditing ? 'none' : 'auto',
+    transition: 'opacity 0.2s ease-in-out', // 添加过渡动画
+  };
+
   return (
     <div
       className={styles.toolbarWrapper}
       onClick={handleToolbarClick}
-      style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-      }}
+      style={toolbarStyle}
       data-toolbar-element="true"
     >
       {/* 显示选中元素数量的提示 */}
