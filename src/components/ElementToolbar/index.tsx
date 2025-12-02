@@ -3,10 +3,12 @@ import { BorderColorPicker } from "./BorderColorPicker"; // 引入边框颜色�
 import { OpacitySlider } from "./OpacitySlider";
 import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
 import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控制
+import { ImageEditorImpl as ImageEditor } from "./ImageEditor"; // 引入图片编辑器
 import type {
   ID,
   CanvasElement,
   ShapeElement,
+  ImageElement as ImageElementModel,
 } from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
 import React from "react";
@@ -60,6 +62,9 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     (el) => el.type === "shape" && (el as ShapeElement).shape === "rect"
   );
 
+  // 检查是否选中了单个图片元素
+  const isSingleImageElement = selectedElements.length === 1 && selectedElements[0].type === "image";
+
   // 注意：这个函数暂时未使用，但保留以备将来需要
   // const getCommonPropertyValue = <T extends keyof CanvasElement>(property: T): CanvasElement[T] | null => {
   //   if (selectedElements.length === 0) return null;
@@ -96,8 +101,16 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     let height = 100; // 默认高度
 
     // 根据元素类型获取尺寸信息
-    if ("shape" in element && element.shape) {
-      if ("width" in element) {
+    if (element.type === "image" && "size" in element) {
+      // 处理图片元素的尺寸
+      width = Number(element.size.width) || 100;
+      height = Number(element.size.height) || 100;
+    } else if ("shape" in element && element.shape) {
+      // 处理形状元素的尺寸
+      if ("size" in element && element.size) {
+        width = Number(element.size.width) || 100;
+        height = Number(element.size.height) || 100;
+      } else if ("width" in element) {
         width = Number(element.width) || 100;
       } else if ("radius" in element) {
         width = height = (Number(element.radius) || 50) * 2;
@@ -238,6 +251,19 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     pointerEvents: isEditing ? 'none' : 'auto',
     transition: 'opacity 0.2s ease-in-out', // 添加过渡动画
   };
+
+  // 对于图片元素，显示专门的图片编辑器
+  if (isSingleImageElement) {
+    const imageElement = selectedElements[0] as ImageElementModel;
+    return (
+      <ImageEditor
+        element={imageElement}
+        onUpdateElement={onUpdateElement}
+        isEditing={isEditing}
+        viewport={viewport}
+      />
+    );
+  }
 
   return (
     <div

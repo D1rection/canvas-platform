@@ -5,6 +5,8 @@ import type {
   Point,
   ViewportState,
   CanvasElement,
+  ShapeElement,
+  ImageElement as ImageElementType,
 } from "../../canvas/schema/model";
 import {
   RectShape,
@@ -100,28 +102,39 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
 
-  // 方案D：增强的状态同步监控
+  // 增强的状态同步监控和验证
   useEffect(() => {
-    console.log("=== State Sync Monitor ===");
-    console.log(
-      "Document elements count:",
-      Object.keys(document.elements).length
-    );
-    console.log("Selected IDs:", selection.selectedIds);
-
-    // 检查每个选中的元素是否仍然存在
-    selection.selectedIds.forEach((selectedId) => {
-      const elementExists = !!document.elements[selectedId];
-      console.log(`Element ${selectedId} exists:`, elementExists);
-
-      if (!elementExists) {
-        console.error(
-          `CRITICAL: Selected element ${selectedId} not found in document!`
-        );
-        // 这里可以记录错误或触发恢复逻辑
+    try {
+      // 验证document和selection对象的有效性
+      if (!document || !selection) {
+        console.error('Invalid canvas state: Missing document or selection');
+        return;
       }
-    });
-  }, [document.elements, selection.selectedIds]);
+
+      console.log("=== State Sync Monitor ===");
+      console.log(
+        "Document elements count:",
+        document.elements ? Object.keys(document.elements).length : 0
+      );
+      console.log("Selected IDs:", selection.selectedIds || []);
+
+      // 检查每个选中的元素是否仍然存在
+      if (Array.isArray(selection.selectedIds) && document.elements) {
+        selection.selectedIds.forEach((selectedId) => {
+          const elementExists = !!document.elements[selectedId];
+          
+          if (!elementExists) {
+            console.error(
+              `CRITICAL: Selected element ${selectedId} not found in document!`
+            );
+            // 可以在这里添加恢复逻辑或通知父组件处理无效选择
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error in state sync monitor:', error);
+    }
+  }, [document, selection]);
 
   // 是否正在拖拽画布
   const [isDragging, setIsDragging] = useState(false);
@@ -169,12 +182,30 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   // 旋转工具已经在上面的useEffect中初始化和更新
 
   const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
-    if (!id) {
+    // 安全检查：确保id有效且onUpdateElement是函数
+    if (!id || typeof id !== 'string') {
+      console.error('Invalid element ID for update:', id);
       return;
     }
 
-    if (onUpdateElement) {
-      onUpdateElement(id, updates);
+    // 验证元素是否存在
+    if (!document.elements || !document.elements[id]) {
+      console.error(`Cannot update non-existent element: ${id}`);
+      return;
+    }
+
+    // 验证updates是否为对象
+    if (!updates || typeof updates !== 'object') {
+      console.error('Invalid updates object:', updates);
+      return;
+    }
+
+    try {
+      if (onUpdateElement) {
+        onUpdateElement(id, updates);
+      }
+    } catch (error) {
+      console.error(`Error updating element ${id}:`, error);
     }
   };
 
@@ -191,30 +222,56 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   );
 
   const renderElement = React.useCallback(
-    (el: any) => {
-      const commonProps = {
-        element: el,
-        viewport: viewport as ViewportState,
-        scale,
-        onPointerDown: (e: React.PointerEvent<any>) =>
-          handleShapePointerDown(el.id, e),
-        isHovered: selection.hoveredId === el.id,
-        isSelected: selection.selectedIds.includes(el.id),
-      };
-
-      if (el.type === "shape") {
-        if (el.shape === "rect") {
-          return <RectShape key={el.id} {...commonProps} />;
-        }
-        if (el.shape === "circle") {
-          return <CircleShape key={el.id} {...commonProps} />;
-        }
-        if (el.shape === "triangle") {
-          return <TriangleShape key={el.id} {...commonProps} />;
-        }
+    (el: CanvasElement) => {
+      // 安全检查：确保元素存在且有id
+      if (!el || !el.id) {
+        console.error('Invalid element: Missing ID or element is null');
+        return null;
       }
-      if (el.type === "image") {
-        return <ImageElement key={el.id} {...commonProps} />;
+
+      try {
+        // 根据元素类型进行类型守卫和正确的属性传递
+        if (el.type === "shape") {
+          const shapeElement = el as ShapeElement;
+          const shapeProps = {
+            element: shapeElement,
+            viewport: viewport as ViewportState,
+            scale,
+            onPointerDown: (e: React.PointerEvent<any>) =>
+              handleShapePointerDown(el.id, e),
+            isHovered: selection.hoveredId === el.id,
+            isSelected: selection.selectedIds.includes(el.id),
+          };
+
+          if (shapeElement.shape === "rect") {
+            return <RectShape key={el.id} {...shapeProps} />;
+          }
+          if (shapeElement.shape === "circle") {
+            return <CircleShape key={el.id} {...shapeProps} />;
+          }
+          if (shapeElement.shape === "triangle") {
+            return <TriangleShape key={el.id} {...shapeProps} />;
+          }
+          // 处理未知形状类型
+          console.warn(`Unknown shape type: ${shapeElement.shape}`);
+          return <RectShape key={el.id} {...shapeProps} />;
+        }
+        if (el.type === "image") {
+          const imageElement = el as ImageElementType;
+          const imageProps = {
+            element: imageElement,
+            viewport: viewport as ViewportState,
+            scale,
+            onPointerDown: (e: React.PointerEvent<any>) =>
+              handleShapePointerDown(el.id, e),
+            isSelected: selection.selectedIds.includes(el.id),
+          };
+          return <ImageElement key={el.id} {...imageProps} />;
+        }
+        // 处理未知元素类型
+        console.warn(`Unknown element type: ${el.type}`);
+      } catch (error) {
+        console.error(`Error rendering element ${el.id}:`, error);
       }
       return null;
     },
@@ -228,23 +285,56 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   );
 
   const renderedElements = React.useMemo(() => {
+    // 安全检查：确保rootElementIds是数组
+    if (!Array.isArray(document.rootElementIds)) {
+      console.error('Invalid document structure: rootElementIds is not an array');
+      return [];
+    }
+    
+    // 安全检查：确保elements是对象
+    if (!document.elements || typeof document.elements !== 'object') {
+      console.error('Invalid document structure: elements is not an object');
+      return [];
+    }
+
     return document.rootElementIds.map((id) => {
+      // 跳过无效的id
+      if (!id || typeof id !== 'string') {
+        console.warn('Invalid element ID:', id);
+        return null;
+      }
+      
       const el = document.elements[id];
-      if (!el || !el.visible) return null;
+      if (!el) {
+        console.warn(`Element with ID ${id} not found`);
+        return null;
+      }
+      
+      if (!el.visible) return null;
       return renderElement(el);
-    });
+    }).filter(Boolean); // 过滤掉null值
   }, [document.rootElementIds, document.elements, renderElement]);
 
   const screenToWorld = (
     e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>
   ): Point => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const screenX = e.clientX - rect.left;
-    const screenY = e.clientY - rect.top;
-    return {
-      x: viewport.x + screenX / scale,
-      y: viewport.y + screenY / scale,
-    };
+    try {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const screenX = e.clientX - rect.left;
+      const screenY = e.clientY - rect.top;
+      
+      // 安全检查：确保scale有效且非零
+      const safeScale = scale && scale !== 0 ? scale : 1;
+      
+      return {
+        x: (viewport?.x || 0) + screenX / safeScale,
+        y: (viewport?.y || 0) + screenY / safeScale,
+      };
+    } catch (error) {
+      console.error('Error converting screen to world coordinates:', error);
+      // 返回安全的默认值
+      return { x: 0, y: 0 };
+    }
   };
 
   // 检测是否为元素拖拽操作
@@ -440,48 +530,74 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       onPointerUp={handleCanvasPointerUp}
       onWheel={handleWheel}
     >
+      {/* 元素层 */}
       <div className={styles.elementsLayer} ref={elementsLayerRef}>
         {renderedElements}
       </div>
 
+      {/* 覆盖层 */}
       <div className={styles.overlayLayer} ref={overlayLayerRef}>
+        {/* 选择覆盖层 */}
         <SelectionOverlay
-          selectedIds={selection.selectedIds}
-          elements={document.elements}
+          selectedIds={selection.selectedIds || []}
+          elements={document.elements || {}}
           viewport={viewport}
           onRotateHandlePointerDown={handleRotateHandlePointerDown}
           onScaleHandlePointerDown={handleScaleHandlePointerDown}
           onSelectionBoxPointerDown={(e: React.PointerEvent<Element>) => {
-            // 设置编辑状态为true，表示开始拖拽操作
-            setIsEditing(true);
-            
-            // 调用父组件的选中框拖拽处理
-            if (onSelectionBoxPointerDown) {
-              onSelectionBoxPointerDown(selection.selectedIds, e);
-            } else {
-              e.stopPropagation();
-            }
-            
-            // 监听全局pointerup事件以检测拖拽结束
-            const handleGlobalPointerUp = () => {
+            try {
+              // 设置编辑状态为true，表示开始拖拽操作
+              setIsEditing(true);
+              
+              // 调用父组件的选中框拖拽处理
+              if (onSelectionBoxPointerDown) {
+                onSelectionBoxPointerDown(selection.selectedIds || [], e);
+              } else {
+                e.stopPropagation();
+              }
+              
+              // 监听全局pointerup事件以检测拖拽结束
+              const handleGlobalPointerUp = () => {
+                setIsEditing(false);
+                try {
+                  globalThis.document.removeEventListener('pointerup', handleGlobalPointerUp);
+                } catch (removeEventError) {
+                  console.error('Error removing pointerup event listener:', removeEventError);
+                }
+              };
+              
+              try {
+                globalThis.document.addEventListener('pointerup', handleGlobalPointerUp);
+              } catch (addEventError) {
+                console.error('Error adding pointerup event listener:', addEventError);
+                setIsEditing(false);
+              }
+            } catch (error) {
+              console.error('Error handling selection box pointer down:', error);
               setIsEditing(false);
-              globalThis.document.removeEventListener('pointerup', handleGlobalPointerUp);
-            };
-            globalThis.document.addEventListener('pointerup', handleGlobalPointerUp);
+            }
           }}
-      />
+        />
 
         {/* 渲染工具栏时确保有有效的元素 */}
-        {selection.selectedIds.length > 0 && document.elements[selection.selectedIds[0]] && (
+        {selection.selectedIds?.length > 0 && 
+         document.elements && 
+         document.elements[selection.selectedIds[0]] && (
           <ElementToolbar
             element={document.elements[selection.selectedIds[0]]}
-            elements={selection.selectedIds.map(id => document.elements[id]).filter(Boolean) as CanvasElement[]}
+            elements={selection.selectedIds
+              .map(id => document.elements[id])
+              .filter((el): el is CanvasElement => Boolean(el))}
             onUpdateElement={handleUpdateElement}
             isEditing={isEditing}
             viewport={viewport}
           />
         )}
-        {state.marqueeSelection && state.marqueeSelection.startPoint && state.marqueeSelection.endPoint && (
+        
+        {/* 渲染 marquee 选择框 */}
+        {state.marqueeSelection && 
+         state.marqueeSelection.startPoint && 
+         state.marqueeSelection.endPoint && (
           <MarqueeSelectionBox
             startPoint={state.marqueeSelection.startPoint}
             endPoint={state.marqueeSelection.endPoint}

@@ -200,12 +200,33 @@ function App({ canvasContainer }: AppProps) {
   // 全局键盘事件监听
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // 处理撤销/重做快捷键
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          if (editorService.canUndo()) {
+            editorService.undo();
+            Message.success('撤销操作');
+          }
+          return;
+        }
+        if ((e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+          e.preventDefault();
+          if (editorService.canRedo()) {
+            editorService.redo();
+            Message.success('重做操作');
+          }
+          return;
+        }
+      }
+      
+      // 其他快捷键交给工具处理器
       toolHandler.onKeyDown?.(toolContext, e);
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [toolHandler, toolContext]);
+  }, [toolHandler, toolContext, editorService]);
 
 
   // 全局右键菜单

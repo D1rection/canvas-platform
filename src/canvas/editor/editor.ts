@@ -68,6 +68,32 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   const listeners = new Set<(state: CanvasRuntimeState) => void>();
 
   /**
+   * 操作历史栈 - 用于撤销/重做功能
+   */
+  interface HistoryRecord {
+    state: CanvasRuntimeState;
+    timestamp: number;
+    description?: string;
+  }
+
+  // 历史记录栈
+  const historyStack: HistoryRecord[] = [];
+  // 重做栈
+  const redoStack: HistoryRecord[] = [];
+  // 历史记录最大数量限制
+  const MAX_HISTORY_SIZE = 50;
+
+  // 初始化历史记录
+  historyStack.push({
+    state: { ...initialState },
+    timestamp: Date.now(),
+    description: '初始状态'
+  });
+
+  // 是否正在执行撤销/重做操作的标志
+  let isUndoRedoOperation = false;
+
+  /**
    * 获取当前画布运行时状态
    * @returns 当前画布运行时状态
    */
@@ -100,14 +126,34 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @param nextState 新的画布运行时状态
    * @param options 额外选项
    *  - persist: 是否写入持久化存储（默认 true）
+   *  - description: 操作描述（用于历史记录）
    */
   const setState = (
     nextState: CanvasRuntimeState,
-    options?: { persist?: boolean },
+    options?: { persist?: boolean, description?: string },
   ) => {
     if (nextState === state) {
       return;
     }
+    
+    // 如果不是撤销/重做操作，记录历史
+    if (!isUndoRedoOperation) {
+      // 保存当前状态到历史栈
+      historyStack.push({
+        state: JSON.parse(JSON.stringify(state)), // 深拷贝当前状态
+        timestamp: Date.now(),
+        description: options?.description || '操作'
+      });
+      
+      // 限制历史记录大小
+      if (historyStack.length > MAX_HISTORY_SIZE) {
+        historyStack.shift();
+      }
+      
+      // 清空重做栈
+      redoStack.length = 0;
+    }
+    
     state = nextState;
     notify();
 
@@ -317,7 +363,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
     };
 
-    setState(nextState);
+    // 添加操作描述，区分是图片元素修改还是其他元素修改
+    const description = target.type === 'image' ? '修改图片元素' : '修改元素';
+    setState(nextState, { description });
   };
 
   /**
@@ -354,7 +402,9 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
     };
 
-    setState(nextState);
+    // 添加操作描述，区分是图片元素变换还是其他元素变换
+    const description = target.type === 'image' ? '变换图片元素' : '变换元素';
+    setState(nextState, { description });
   };
 
   /**
@@ -861,8 +911,38 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @returns 是否成功撤销
    */
   const undo: IEditorService["undo"] = () => {
-    // TODO: 实现撤销逻辑，需要注入 historyService
-    throw new Error("undo not implemented");
+    if (historyStack.length <= 1) {
+      return false;
+    }
+    
+    // 保存当前状态到重做栈
+    redoStack.push({
+      state: JSON.parse(JSON.stringify(state)),
+      timestamp: Date.now(),
+      description: '撤销前状态'
+    });
+    
+    // 从历史栈中弹出前一个状态
+    const previousState = historyStack.pop();
+    if (!previousState) {
+      return false;
+    }
+    
+    // 设置为撤销/重做操作，避免再次记录历史
+    isUndoRedoOperation = true;
+    
+    try {
+      // 恢复到前一个状态
+      state = JSON.parse(JSON.stringify(previousState.state));
+      notify();
+      return true;
+    } catch (error) {
+      console.error('撤销操作失败:', error);
+      return false;
+    } finally {
+      // 重置操作标志
+      isUndoRedoOperation = false;
+    }
   };
 
   /**
@@ -870,24 +950,52 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @returns 是否成功重做
    */
   const redo: IEditorService["redo"] = () => {
-    // TODO: 实现重做逻辑，需要注入 historyService
-    throw new Error("redo not implemented");
+    if (redoStack.length === 0) {
+      return false;
+    }
+    
+    // 保存当前状态到历史栈
+    historyStack.push({
+      state: JSON.parse(JSON.stringify(state)),
+      timestamp: Date.now(),
+      description: '重做前状态'
+    });
+    
+    // 从重做栈中弹出下一个状态
+    const nextState = redoStack.pop();
+    if (!nextState) {
+      return false;
+    }
+    
+    // 设置为撤销/重做操作，避免再次记录历史
+    isUndoRedoOperation = true;
+    
+    try {
+      // 恢复到下一个状态
+      state = JSON.parse(JSON.stringify(nextState.state));
+      notify();
+      return true;
+    } catch (error) {
+      console.error('重做操作失败:', error);
+      return false;
+    } finally {
+      // 重置操作标志
+      isUndoRedoOperation = false;
+    }
   };
 
   /**
    * 是否可以撤销
    */
   const canUndo: IEditorService["canUndo"] = () => {
-    // TODO: 实现，需要注入 historyService
-    return false;
+    return historyStack.length > 1;
   };
 
   /**
    * 是否可以重做
    */
   const canRedo: IEditorService["canRedo"] = () => {
-    // TODO: 实现，需要注入 historyService
-    return false;
+    return redoStack.length > 0;
   };
 
   // ─────────────────────────────────────────────────────────────

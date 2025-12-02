@@ -1,0 +1,290 @@
+/* ImageEditor.module.css */
+
+/* 主容器样式 - 与ElementToolbar保持一致的视觉风格 */
+.imageEditorContainer {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid #e8e8e8;
+  min-width: 280px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  pointer-events: auto;
+  margin-top: 10px; /* 为选择计数提示留出空间 */
+  transition: top 0.2s ease, left 0.2s ease;
+}
+
+/* 区块样式 */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 区块标题 */
+.section h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 控制组容器 - 与ElementToolbar保持一致 */
+.controlGroup {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 边框控制区域 */
+.borderControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+/* 透明度控制区域 */
+.opacityControlSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+/* 滤镜控制区域 */
+.filterControlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+/* 滤镜滑块容器 - 与主工具栏滑块样式一致 */
+.filterSliderContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 滤镜滑块标签 - 与主工具栏标签样式一致 */
+.filterSliderLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* 滤镜值显示 - 与主工具栏百分比显示样式一致 */
+.filterValue {
+  font-size: 11px;
+  color: #333;
+  font-weight: 600;
+  min-width: 35px;
+  text-align: right;
+}
+
+/* 预设控制区域 */
+.presetControlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+/* 预设网格 */
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* 预设按钮 - 与主工具栏控件样式保持一致 */
+.presetButton {
+  padding: 6px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 预设按钮悬停状态 - 与主工具栏控件悬停效果一致 */
+.presetButton:hover {
+  background: #f5f5f5;
+  border-color: #45b7d1;
+  transform: translateY(-1px);
+}
+
+/* 预设按钮选中状态 */
+.presetButton.active {
+  background: #45b7d1;
+  color: white;
+  border-color: #45b7d1;
+}
+
+/* 重置按钮容器 */
+.resetButtonContainer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+/* 重置按钮 - 与主工具栏操作按钮样式一致 */
+.resetButton {
+  padding: 8px 24px;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 重置按钮悬停状态 */
+.resetButton:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+/* 重置按钮悬停状态 */
+.resetButton:hover {
+  background: #e74c3c;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* 分割线 */
+.divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 4px 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .imageEditorContainer {
+    min-width: 240px;
+    padding: 10px;
+    gap: 12px;
+  }
+  
+  .presetGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .controlGroup {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* 禁用状态样式 */
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* 加载状态 */
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+/* 加载指示器 */
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #45b7d1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 提示文本 */
+.hintText {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  margin: 4px 0;
+  font-style: italic;
+}
+
+/* 高级设置切换 */
+.advancedSettingsToggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: center;
+}
+
+.advancedSettingsToggle:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+/* 高级设置面板 */
+.advancedSettingsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: #f8f8f8;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+}

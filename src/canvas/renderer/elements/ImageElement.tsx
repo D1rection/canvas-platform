@@ -9,7 +9,8 @@ export const ImageElement: React.FC<{
   viewport: ViewportState;
   scale: number;
   onPointerDown?: React.PointerEventHandler<HTMLImageElement>;
-}> = ({ element, viewport, scale, onPointerDown }) => {
+  isSelected?: boolean;
+}> = ({ element, viewport, scale, onPointerDown, isSelected }) => {
   if (!element.visible) return null;
 
   const { src, size, filters, transform } = element;
@@ -48,6 +49,8 @@ export const ImageElement: React.FC<{
         filter: filterCSS,
         pointerEvents: "auto",
         userSelect: "none",
+        outline: isSelected ? `2px solid #0066FF` : 'none',
+        outlineOffset: '-2px',
       }}
     />
   );
