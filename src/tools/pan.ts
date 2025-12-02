@@ -5,9 +5,84 @@ interface PanState {
   startClientX: number;
   startClientY: number;
   startViewport: ViewportState;
+  pointerId: number; // 当前平移操作对应的指针 ID
 }
 
 let panState: PanState | null = null;
+
+// 画布平移的全局事件监听器（用于鼠标拖出画布 / 浏览器的兜底）
+let panGlobalListeners: {
+  onPointerMove: (e: PointerEvent) => void;
+  onPointerUp: (e: PointerEvent) => void;
+} | null = null;
+
+/**
+ * 清理全局平移监听器
+ */
+function cleanupPanGlobalListeners() {
+  if (panGlobalListeners) {
+    document.removeEventListener("pointermove", panGlobalListeners.onPointerMove);
+    document.removeEventListener("pointerup", panGlobalListeners.onPointerUp);
+    document.removeEventListener("pointercancel", panGlobalListeners.onPointerUp);
+    panGlobalListeners = null;
+  }
+}
+
+/**
+ * 设置画布平移的全局 pointer 事件监听器
+ * - 解决拖动画布时鼠标移出浏览器无法触发 pointerup 的问题
+ */
+function setupPanGlobalListeners(ctx: ToolContext, _initialEv: PointerEvent) {
+  // 如果已经有监听器，先清理
+  cleanupPanGlobalListeners();
+
+  const onPointerMove = (e: PointerEvent) => {
+    // 只处理同一指针
+    if (!panState || e.pointerId !== panState.pointerId) return;
+
+    const { startClientX, startClientY } = panState;
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+
+    // 更新画布平移预览
+    ctx.setPanPreview?.({ dx, dy });
+  };
+
+  const onPointerUp = (e: PointerEvent) => {
+    if (!panState || e.pointerId !== panState.pointerId) {
+      // 无效或已经结束的平移，直接清理监听器
+      cleanupPanGlobalListeners();
+      return;
+    }
+
+    const { startClientX, startClientY, startViewport } = panState;
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+
+    const scale = startViewport.scale;
+    const nextViewport: ViewportState = {
+      ...startViewport,
+      x: startViewport.x - dx / scale,
+      y: startViewport.y - dy / scale,
+    };
+
+    ctx.editor.setViewport(nextViewport);
+
+    ctx.setPanPreview?.(null);
+    panState = null;
+
+    cleanupPanGlobalListeners();
+  };
+
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
+  document.addEventListener("pointercancel", onPointerUp);
+
+  panGlobalListeners = {
+    onPointerMove,
+    onPointerUp,
+  };
+}
 
 /**
  * 拖动工具（平移画布）
@@ -27,7 +102,11 @@ export const panTool: ToolHandler = {
       startClientX: ev.clientX,
       startClientY: ev.clientY,
       startViewport: { ...viewport },
+      pointerId: ev.pointerId,
     };
+
+    // 设置全局监听器，避免拖出画布 / 浏览器后丢失事件
+    setupPanGlobalListeners(ctx, ev);
 
     ev.preventDefault();
   },
@@ -40,7 +119,11 @@ export const panTool: ToolHandler = {
       startClientX: ev.clientX,
       startClientY: ev.clientY,
       startViewport: { ...viewport },
+      pointerId: ev.pointerId,
     };
+
+    // 设置全局监听器，避免拖出画布 / 浏览器后丢失事件
+    setupPanGlobalListeners(ctx, ev);
 
     ev.preventDefault();
   },
@@ -62,6 +145,7 @@ export const panTool: ToolHandler = {
     if (!panState || !ev) {
       panState = null;
       ctx.setPanPreview?.(null);
+      cleanupPanGlobalListeners();
       return;
     }
 
@@ -80,6 +164,7 @@ export const panTool: ToolHandler = {
 
     ctx.setPanPreview?.(null);
     panState = null;
+    cleanupPanGlobalListeners();
   },
 };
 
