@@ -73,12 +73,35 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       onUpdateElement(el.id, updates);
     });
   };
-  // 计算工具栏位置（优化定位系统：优先下方显示，避免遮挡元素）
-  const getToolbarPosition = () => {
-    // 对于多个选中的元素，使用第一个元素来定位
-    const targetElement = selectedElements[0];
+  // 计算元素的尺寸信息
+  const getElementBounds = (element: CanvasElement) => {
+    if (!element.transform) {
+      return { x: 0, y: 0, width: 100, height: 100 };
+    }
 
-    if (!targetElement || !targetElement.transform) {
+    const x = element.transform.x;
+    const y = element.transform.y;
+    let width = 100; // 默认宽度
+    let height = 100; // 默认高度
+
+    // 根据元素类型获取尺寸信息
+    if ("shape" in element && element.shape) {
+      if ("width" in element) {
+        width = Number(element.width) || 100;
+      } else if ("radius" in element) {
+        width = height = (Number(element.radius) || 50) * 2;
+      }
+      if ("height" in element) {
+        height = Number(element.height) || 100;
+      }
+    }
+
+    return { x, y, width, height };
+  };
+
+  // 计算工具栏位置（智能定位系统：优先下方显示，避免遮挡元素）
+  const getToolbarPosition = () => {
+    if (selectedElements.length === 0) {
       // 如果没有元素，默认显示在视口顶部
       return { top: 10, left: 10 };
     }
@@ -91,67 +114,53 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const containerHeight =
       typeof window !== "undefined" ? window.innerHeight : 600;
 
-    // 获取元素在屏幕上的位置和大小
-    const elementX = targetElement.transform.x;
-    const elementY = targetElement.transform.y;
+    // 计算所有选中元素的边界框
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
 
-    // 安全地获取元素尺寸信息，处理不同类型的元素
-    let elementWidth = 100; // 默认宽度
-    let elementHeight = 100; // 默认高度
+    selectedElements.forEach(element => {
+      const bounds = getElementBounds(element);
+      minX = Math.min(minX, bounds.x);
+      minY = Math.min(minY, bounds.y);
+      maxX = Math.max(maxX, bounds.x + bounds.width);
+      maxY = Math.max(maxY, bounds.y + bounds.height);
+    });
 
-    // 检查元素类型并获取相应的尺寸信息
-    if ("shape" in targetElement && targetElement.shape) {
-      // 对于形状元素，尝试获取尺寸相关属性
-      if ("width" in targetElement) {
-        elementWidth = Number(targetElement.width) || 100;
-      } else if ("radius" in targetElement) {
-        // 对于圆形等可能使用radius的元素
-        elementWidth = elementHeight = (Number(targetElement.radius) || 50) * 2;
-      }
-      if ("height" in targetElement) {
-        elementHeight = Number(targetElement.height) || 100;
-      }
-    }
+    // 计算边界框的中心点和其他位置信息
+    const boundsWidth = maxX - minX;
+    const boundsCenterX = minX + boundsWidth / 2;
+    const boundsTop = minY;
+    const boundsBottom = maxY;
 
-    // 计算元素的各种位置信息
-    const elementCenterX = elementX + elementWidth / 2;
-    const elementCenterY = elementY + elementHeight / 2;
-    const elementTop = elementY;
-    const elementBottom = elementY + elementHeight;
-    const elementLeft = elementX;
-    const elementRight = elementX + elementWidth;
-
-    // 计算元素周围的可用空间
-    const spaceAboveElement = elementTop - margin;
-    const spaceBelowElement = containerHeight - elementBottom - margin;
-    const spaceLeftElement = elementLeft - margin;
-    const spaceRightElement = containerWidth - elementRight - margin;
+    // 计算边界框周围的可用空间
+    const spaceAboveBounds = boundsTop - margin;
+    const spaceBelowBounds = containerHeight - boundsBottom - margin;
 
     // 初始化工具栏位置变量
-    let finalTop, finalLeft;
+    let finalTop: number, finalLeft: number;
 
-    // 优化优先级：优先下方显示，避免遮挡元素
+    // 智能定位算法：优先下方显示，避免遮挡选中的元素
     // 1. 优先下方显示（确保不遮挡元素）
-    if (spaceBelowElement > toolbarHeight) {
+    if (spaceBelowBounds >= toolbarHeight) {
       // 下方有足够空间
-      finalTop = elementBottom + margin;
-      finalLeft = elementCenterX - toolbarWidth / 2;
-    } else if (spaceAboveElement > toolbarHeight) {
-      // 2. 只有当下方空间不足且上方空间充足时，才显示在上方
-      finalTop = elementTop - toolbarHeight - margin;
-      finalLeft = elementCenterX - toolbarWidth / 2;
-    } else if (spaceLeftElement > toolbarWidth) {
-      // 3. 左侧有足够空间
-      finalTop = elementCenterY - toolbarHeight / 2;
-      finalLeft = elementLeft - toolbarWidth - margin;
-    } else if (spaceRightElement > toolbarWidth) {
-      // 4. 右侧有足够空间
-      finalTop = elementCenterY - toolbarHeight / 2;
-      finalLeft = elementRight + margin;
+      finalTop = boundsBottom + margin;
+      finalLeft = boundsCenterX - toolbarWidth / 2;
+    } else if (spaceAboveBounds >= toolbarHeight) {
+      // 2. 当下方空间不足且上方空间充足时，显示在上方
+      finalTop = boundsTop - toolbarHeight - margin;
+      finalLeft = boundsCenterX - toolbarWidth / 2;
     } else {
-      // 5. 所有方向都没有理想空间，优先显示在底部避免遮挡
-      finalTop = Math.max(margin, containerHeight - toolbarHeight - margin);
-      finalLeft = elementCenterX - toolbarWidth / 2;
+      // 3. 如果上下空间都不足，优先选择空间较大的方向
+      if (spaceBelowBounds > spaceAboveBounds) {
+        // 下方空间相对较大
+        finalTop = boundsBottom + margin;
+      } else {
+        // 上方空间相对较大
+        finalTop = boundsTop - toolbarHeight - margin;
+      }
+      finalLeft = boundsCenterX - toolbarWidth / 2;
     }
 
     // 应用最终边界检查，确保工具栏完全在视口内
