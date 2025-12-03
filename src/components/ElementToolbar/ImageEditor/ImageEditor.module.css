@@ -161,6 +161,7 @@
   background: #fafafa;
   border-radius: 8px;
   border: 1px solid #f0f0f0;
+  overflow: hidden;
 }
 
 /* 滤镜滑块容器 - 与主工具栏滑块样式一致 */

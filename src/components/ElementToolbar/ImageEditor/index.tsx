@@ -4,7 +4,6 @@ import type { CanvasElement, ID, ShapeElement, ImageElement } from "../../../can
 import { OpacitySlider } from "../OpacitySlider";
 import { BorderColorPicker } from "../BorderColorPicker";
 import { BorderWidthControl } from "../BorderWidthControl";
-import { FilterControls } from "./controls/FilterControls";
 import { PresetControls } from "./controls/PresetControls";
 import { ImageEditProvider } from "./contexts/ImageEditContext";
 import styles from "./ImageEditor.module.css";
@@ -244,18 +243,7 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
             />
           </div>
 
-          {/* 滤镜控制部分 */}
-          <div className={styles.section}>
-            <h3>滤镜效果</h3>
-            <div className={styles.filterControlsSection}>
-              <FilterControls 
-                element={element} 
-                onUpdateElement={onUpdateElement} 
-              />
-            </div>
-          </div>
-
-          {/* 预设部分 */}
+          {/* 预设效果部分 */}
           <div className={styles.section}>
             <h3>预设效果</h3>
             <div className={styles.presetControlsSection}>
