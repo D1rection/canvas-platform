@@ -183,7 +183,6 @@ export class ScaleTool {
       initialHeight,
       initialX,
       initialY,
-      elementCenter,
       aspectRatio
     } = this.scaleState;
     
