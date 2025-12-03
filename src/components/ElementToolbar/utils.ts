@@ -5,7 +5,7 @@ import type {
   CanvasElement,
   ShapeElement,
   TextElement,
-  // ImageElement,
+  ImageElement,
   // ID,
   // Point,
   // Size,
@@ -41,6 +41,10 @@ export const COLOR_PRESETS = [
 
 const isShapeElement = (element: CanvasElement): element is ShapeElement => {
   return element.type === "shape";
+};
+
+const isImageElement = (element: CanvasElement): element is ImageElement => {
+  return element.type === "image";
 };
 
 export const isTextElement = (
@@ -120,6 +124,8 @@ export const setElementOpacity = (
   return { opacity: Math.max(0, Math.min(1, opacity)) };
 };
 
+
+
 // --- Border Color Helpers 边框颜色辅助函数 ---
 
 /**
@@ -128,6 +134,8 @@ export const setElementOpacity = (
 export const getElementBorderColor = (element: CanvasElement): string => {
   if (isShapeElement(element)) {
     return element.style.strokeColor || "#000000";
+  } else if (isImageElement(element)) {
+    return element.borderColor || "#000000";
   }
   return "#000000";
 };
@@ -146,6 +154,10 @@ export const setElementBorderColor = (
         strokeColor: color,
       },
     };
+  } else if (isImageElement(element)) {
+    return {
+      borderColor: color,
+    };
   }
   return {};
 };
@@ -158,6 +170,8 @@ export const setElementBorderColor = (
 export const getElementBorderWidth = (element: CanvasElement): number => {
   if (isShapeElement(element)) {
     return element.style.strokeWidth || 0;
+  } else if (isImageElement(element)) {
+    return element.borderWidth || 0;
   }
   return 0;
 };
@@ -169,14 +183,19 @@ export const setElementBorderWidth = (
   element: CanvasElement,
   width: number
 ): Partial<CanvasElement> => {
+  // 限制边框宽度范围 1-20 像素
+  const validWidth = Math.max(1, Math.min(20, width));
+  
   if (isShapeElement(element)) {
-    // 限制边框宽度范围 1-20 像素
-    const validWidth = Math.max(1, Math.min(20, width));
     return {
       style: {
         ...element.style,
         strokeWidth: validWidth,
       },
+    };
+  } else if (isImageElement(element)) {
+    return {
+      borderWidth: validWidth,
     };
   }
   return {};
