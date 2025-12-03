@@ -254,31 +254,35 @@ export class ScaleTool {
         break;
         
       case ScaleDirection.TOP:
-        newHeight = Math.max(10, initialHeight - deltaY * 2);
-        newWidth = newHeight * aspectRatio;
-        newX = elementCenter.x - newWidth / 2;
-        newY = elementCenter.y - newHeight / 2;
+        // TOP中点：垂直拉伸，保持宽度不变，保持底部位置不变
+        newHeight = Math.max(10, initialHeight - deltaY);
+        newWidth = initialWidth; // 保持宽度不变
+        newX = initialX; // 保持左侧位置不变
+        newY = initialY - (newHeight - initialHeight); // 调整顶部位置，保持底部位置不变
         break;
         
       case ScaleDirection.RIGHT:
-        newWidth = Math.max(10, initialWidth + deltaX * 2);
-        newHeight = newWidth / aspectRatio;
-        newX = elementCenter.x - newWidth / 2;
-        newY = elementCenter.y - newHeight / 2;
+        // RIGHT中点：水平拉伸，保持高度不变，保持左侧位置不变
+        newWidth = Math.max(10, initialWidth + deltaX);
+        newHeight = initialHeight; // 保持高度不变
+        newX = initialX; // 保持左侧位置不变
+        newY = initialY; // 保持顶部位置不变
         break;
         
       case ScaleDirection.BOTTOM:
-        newHeight = Math.max(10, initialHeight + deltaY * 2);
-        newWidth = newHeight * aspectRatio;
-        newX = elementCenter.x - newWidth / 2;
-        newY = elementCenter.y - newHeight / 2;
+        // BOTTOM中点：垂直拉伸，保持宽度不变，保持顶部位置不变
+        newHeight = Math.max(10, initialHeight + deltaY);
+        newWidth = initialWidth; // 保持宽度不变
+        newX = initialX; // 保持左侧位置不变
+        newY = initialY; // 保持顶部位置不变
         break;
         
       case ScaleDirection.LEFT:
-        newWidth = Math.max(10, initialWidth - deltaX * 2);
-        newHeight = newWidth / aspectRatio;
-        newX = elementCenter.x - newWidth / 2;
-        newY = elementCenter.y - newHeight / 2;
+        // LEFT中点：水平拉伸，保持高度不变，保持右侧位置不变
+        newWidth = Math.max(10, initialWidth - deltaX);
+        newHeight = initialHeight; // 保持高度不变
+        newX = initialX + (initialWidth - newWidth); // 调整左侧位置，保持右侧位置不变
+        newY = initialY; // 保持顶部位置不变
         break;
     }
     
