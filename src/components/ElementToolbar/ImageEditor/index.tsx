@@ -1,6 +1,6 @@
 // ImageEditor/index.tsx
 import React, { useState, useCallback } from "react";
-import type { CanvasElement, ID, ShapeElement, ImageElement } from "../../../canvas/schema/model";
+import type { CanvasElement, ID, ShapeElement, ImageElement, ViewportState } from "../../../canvas/schema/model";
 import { OpacitySlider } from "../OpacitySlider";
 import { BorderColorPicker } from "../BorderColorPicker";
 import { BorderWidthControl } from "../BorderWidthControl";
@@ -11,7 +11,7 @@ import styles from "./ImageEditor.module.css";
 interface ImageEditorProps {
   element: CanvasElement;
   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
-  viewport?: { scale: number }; // 用于位置计算的视口信息
+  viewport?: ViewportState; // 用于位置计算的视口信息（与 editor 一致）
   isEditing?: boolean; // 编辑状态标志
 }
 
@@ -59,8 +59,10 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
       return { x: 0, y: 0, width: 100, height: 100 };
     }
 
-    // 获取视口缩放比例，默认值为1
+    // 获取视口缩放/平移
     const viewportScale = viewport?.scale || 1;
+    const viewportX = viewport?.x || 0;
+    const viewportY = viewport?.y || 0;
     
     // 元素的原始坐标和变换
     const elementX = element.transform.x;
@@ -94,9 +96,9 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
     width *= elementScaleX;
     height *= elementScaleY;
     
-    // 将坐标转换为屏幕坐标系（考虑视口缩放）
-    const screenX = elementX * viewportScale;
-    const screenY = elementY * viewportScale;
+    // 将坐标转换为屏幕坐标系（考虑视口平移与缩放）
+    const screenX = (elementX - viewportX) * viewportScale;
+    const screenY = (elementY - viewportY) * viewportScale;
     const screenWidth = width * viewportScale;
     const screenHeight = height * viewportScale;
 
