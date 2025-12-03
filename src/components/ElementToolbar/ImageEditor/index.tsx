@@ -1,5 +1,5 @@
 // ImageEditor/index.tsx
-import React from "react";
+import React, { useState, useCallback } from "react";
 import type { CanvasElement, ID, ShapeElement, ImageElement } from "../../../canvas/schema/model";
 import { OpacitySlider } from "../OpacitySlider";
 import { BorderColorPicker } from "../BorderColorPicker";
@@ -22,6 +22,9 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
   viewport,
   isEditing = false 
 }) => {
+  // 折叠状态
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
   // 重置功能
   const handleReset = () => {
     const updates: Record<string, any> = {
@@ -45,6 +48,11 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
 
     onUpdateElement(element.id, updates);
   };
+  
+  // 切换折叠状态
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, []);
 
   // 计算元素的尺寸信息 - 与ElementToolbar保持一致的计算逻辑
   const getElementBounds = (element: CanvasElement) => {
@@ -102,14 +110,14 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
     };
   };
 
-  // 计算工具栏位置 - 与ElementToolbar保持一致的智能定位系统
+  // 计算工具栏位置 - 实现默认左侧固定，遮挡时自动切换到右侧
   const getToolbarPosition = () => {
     if (!element) {
-      // 如果没有元素，默认显示在视口顶部
+      // 如果没有元素，默认显示在视口左侧
       return { top: 10, left: 10 };
     }
 
-    const toolbarWidth = 300;
+    const toolbarWidth = isCollapsed ? 40 : 300; // 折叠时宽度减小
     const toolbarHeight = 400; // 图像编辑器高度较大
     const margin = 10;
     const containerWidth = typeof window !== "undefined" ? window.innerWidth : 1000;
@@ -118,18 +126,14 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
     // 获取元素的边界
     const bounds = getElementBounds(element);
     
-    // 计算元素的中心点和其他位置信息
-    const boundsCenterX = bounds.x + bounds.width / 2;
-    const boundsCenterY = bounds.y + bounds.height / 2;
-    const boundsTop = bounds.y;
-    const boundsBottom = bounds.y + bounds.height;
-    
     // 边界检查函数：确保目标位置不会超出视口
-    const clampX = (x: number) => Math.max(margin, Math.min(x, containerWidth - toolbarWidth - margin));
     const clampY = (y: number) => Math.max(margin, Math.min(y, containerHeight - toolbarHeight - margin));
     
     // 重叠检测函数：检查工具栏是否与元素重叠
     const checkOverlap = (top: number, left: number) => {
+      // 如果处于折叠状态，不检查重叠
+      if (isCollapsed) return false;
+      
       const rect1 = { 
         left, 
         top, 
@@ -150,31 +154,27 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
                rect1.top > rect2.bottom);
     };
     
-    // 计算可能的位置，包括缩放视口适配
-    const positions = [
-      { top: boundsBottom + margin, left: boundsCenterX - toolbarWidth / 2, name: 'below' }, // 元素下方（首选）
-      { top: boundsTop - toolbarHeight - margin, left: boundsCenterX - toolbarWidth / 2, name: 'above' }, // 元素上方
-      { top: boundsCenterY - toolbarHeight / 2, left: bounds.x + bounds.width + margin, name: 'right' }, // 元素右侧居中
-      { top: boundsCenterY - toolbarHeight / 2, left: bounds.x - toolbarWidth - margin, name: 'left' }, // 元素左侧居中
-      { top: containerHeight - toolbarHeight - margin * 2, left: containerWidth / 2 - toolbarWidth / 2, name: 'bottom-center' }, // 视口底部中央
-      { top: margin * 2, left: containerWidth / 2 - toolbarWidth / 2, name: 'top-center' } // 视口顶部中央
-    ];
-
-    // 筛选有效的位置（在视口内且不重叠）
-    for (const pos of positions) {
-      const clampedLeft = clampX(pos.left);
-      const clampedTop = clampY(pos.top);
-      
-      if (!checkOverlap(clampedTop, clampedLeft)) {
-        return { top: clampedTop, left: clampedLeft };
-      }
+    // 计算默认左侧位置
+    const leftPosition = margin;
+    const topPosition = clampY(10); // 顶部留出一点边距
+    
+    // 检查左侧位置是否与元素重叠
+    if (!checkOverlap(topPosition, leftPosition)) {
+      // 左侧不重叠，使用左侧位置
+      return { top: topPosition, left: leftPosition, side: 'left' as const };
     }
     
-    // 如果所有位置都重叠，强制放在底部中央（这是最后的备选方案）
-    return { 
-      top: containerHeight - toolbarHeight - margin * 2, 
-      left: containerWidth / 2 - toolbarWidth / 2 
-    };
+    // 左侧重叠，尝试右侧位置
+    const rightPosition = containerWidth - toolbarWidth - margin;
+    
+    // 检查右侧位置是否与元素重叠
+    if (!checkOverlap(topPosition, rightPosition)) {
+      // 右侧不重叠，使用右侧位置
+      return { top: topPosition, left: rightPosition, side: 'right' as const };
+    }
+    
+    // 如果两侧都重叠，仍然使用左侧位置（折叠时会自动解决遮挡问题）
+    return { top: topPosition, left: leftPosition, side: 'left' as const };
   };
 
   const position = getToolbarPosition();
@@ -184,79 +184,94 @@ const ImageEditorImpl: React.FC<ImageEditorProps> = ({
     e.stopPropagation();
   };
 
-  // 根据编辑状态控制工具栏的显示
-  // 使用opacity和pointerEvents实现平滑的显示/隐藏效果，避免视觉闪烁
+  // 根据编辑状态和折叠状态控制工具栏的显示
   const toolbarStyle: React.CSSProperties = {
     top: `${position.top}px`,
-    left: `${position.left}px`,
+    left: isCollapsed ? (position.side === 'left' ? `${position.left}px` : `${position.left + 300 - 40}px`) : `${position.left}px`,
+    width: isCollapsed ? '40px' : '300px',
     opacity: isEditing ? 0 : 1,
     pointerEvents: isEditing ? 'none' : 'auto',
-    transition: 'opacity 0.2s ease-in-out', // 添加过渡动画
+    transition: 'all 0.3s ease', // 统一的过渡动画
   };
 
   return (
-    <div
-      className={styles.imageEditorContainer}
-      onClick={handleToolbarClick}
-      style={toolbarStyle}
-      data-toolbar-element="true"
-    >
-      {/* 边框设置部分 */}
-      <div className={styles.section}>
-        <h3>边框设置</h3>
-        <div className={styles.borderControls}>
-          <div className={styles.controlGroup}>
-            <label>边框宽度</label>
-            <BorderWidthControl 
+   <div
+  className={`${styles.imageEditorContainer} ${isCollapsed ? styles.collapsed : ''}`}
+  onClick={handleToolbarClick}
+  style={toolbarStyle}
+  data-toolbar-element="true"
+  data-side={position.side}
+>
+      {/* 折叠/展开按钮 */}
+      <button 
+        className={styles.collapseButton} 
+        onClick={toggleCollapse}
+        aria-label={isCollapsed ? "展开图片编辑工具栏" : "折叠图片编辑工具栏"}
+        title={isCollapsed ? "展开图片编辑工具栏" : "折叠图片编辑工具栏"}
+      >
+        {isCollapsed ? '>' : '<'}
+      </button>
+      
+      {/* 只有在非折叠状态下显示内容 */}
+      {!isCollapsed && (
+        <>
+          {/* 边框设置部分 */}
+          <div className={styles.section}>
+            <h3>边框设置</h3>
+            <div className={styles.borderControls}>
+              <div className={styles.controlGroup}>
+                <label>边框宽度</label>
+                <BorderWidthControl 
+                  element={element} 
+                  onUpdateElement={onUpdateElement} 
+                />
+              </div>
+              <div className={styles.controlGroup}>
+                <label>边框颜色</label>
+                <BorderColorPicker 
+                  element={element} 
+                  onUpdateElement={onUpdateElement} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 透明度控制部分 */}
+          <div className={styles.section}>
+            <OpacitySlider 
               element={element} 
               onUpdateElement={onUpdateElement} 
             />
           </div>
-          <div className={styles.controlGroup}>
-            <label>边框颜色</label>
-            <BorderColorPicker 
-              element={element} 
-              onUpdateElement={onUpdateElement} 
-            />
+
+          {/* 滤镜控制部分 */}
+          <div className={styles.section}>
+            <h3>滤镜效果</h3>
+            <div className={styles.filterControlsSection}>
+              <FilterControls 
+                element={element} 
+                onUpdateElement={onUpdateElement} 
+              />
+            </div>
           </div>
 
-        </div>
-      </div>
+          {/* 预设部分 */}
+          <div className={styles.section}>
+            <h3>预设效果</h3>
+            <div className={styles.presetControlsSection}>
+              <PresetControls 
+                element={element} 
+                onUpdateElement={onUpdateElement} 
+              />
+            </div>
+          </div>
 
-      {/* 透明度控制部分 */}
-      <div className={styles.section}>
-        <OpacitySlider 
-          element={element} 
-          onUpdateElement={onUpdateElement} 
-        />
-      </div>
-
-      {/* 滤镜控制部分 */}
-      <div className={styles.section}>
-        <h3>滤镜效果</h3>
-        <div className={styles.filterControlsSection}>
-          <FilterControls 
-            element={element} 
-            onUpdateElement={onUpdateElement} 
-          />
-        </div>
-      </div>
-
-      {/* 预设部分 */}
-      <div className={styles.section}>
-        <h3>预设效果</h3>
-        <div className={styles.presetControlsSection}>
-          <PresetControls 
-            element={element} 
-            onUpdateElement={onUpdateElement} 
-          />
-        </div>
-      </div>
-
-      {/* 操作按钮 */}
-      <div className={styles.resetButtonContainer}>
-        <button onClick={handleReset} className={styles.resetButton}>重置</button>
-      </div>
+          {/* 操作按钮 */}
+          <div className={styles.resetButtonContainer}>
+            <button onClick={handleReset} className={styles.resetButton}>重置</button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

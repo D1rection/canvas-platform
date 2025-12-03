@@ -16,7 +16,92 @@
   z-index: 1000;
   pointer-events: auto;
   margin-top: 10px; /* 为选择计数提示留出空间 */
-  transition: top 0.2s ease, left 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+/* 折叠状态样式 */
+/* 修改现有的折叠状态样式 */
+.imageEditorContainer.collapsed {
+  padding: 10px 5px;
+  min-width: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  /* 移除边框相关样式 */
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* 折叠按钮样式 */
+.collapseButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #666;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+.collapseButton:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: #333;
+}
+
+/* 修改折叠状态下的折叠按钮样式，添加右侧对齐支持 */
+.imageEditorContainer.collapsed .collapseButton {
+  right: 5px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+/* 添加右侧对齐时的按钮样式 */
+.imageEditorContainer.collapsed[data-side="right"] .collapseButton {
+  right: 5px;
+  left: unset;
+}
+
+/* 添加左侧对齐时的按钮样式 */
+.imageEditorContainer.collapsed[data-side="left"] .collapseButton {
+  right: 5px;
+}
+
+/* 替换现有的折叠图标样式 */
+/* 替换现有的折叠图标样式 */
+.imageEditorContainer.collapsed .collapseButton::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v10z'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.9;
+}
+
+/* 非折叠状态下隐藏图片图标 */
+.imageEditorContainer:not(.collapsed) .collapseButton::before {
+  display: none;
 }
 
 /* 区块样式 */
@@ -275,11 +360,11 @@
     padding: 10px;
     gap: 12px;
   }
-  
+
   .presetGrid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .controlGroup {
     flex-direction: column;
     align-items: stretch;
@@ -319,8 +404,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 提示文本 */
