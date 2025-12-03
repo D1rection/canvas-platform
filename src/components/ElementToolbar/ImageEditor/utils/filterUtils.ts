@@ -12,8 +12,7 @@ export const isImageElement = (element: CanvasElement): element is ImageElement 
 const FILTER_TYPE_MAP: {[key: string]: string} = {
   'brightness': 'brightness',
   'grayscale': 'grayscale',
-  'blur': 'blur',
-  'opacity': 'opacity'
+  'blur': 'blur'
 };
 
 // 性能优化：获取图片滤镜值（添加缓存）
@@ -191,7 +190,6 @@ export const generateCSSFilterString = (filters: ImageFilter[]): string => {
     switch (filter.type) {
       case 'brightness':
       case 'grayscale':
-      case 'opacity' as any:
         filterComponents.push(`${cssFilterType}(${filter.value * 100}%)`);
         break;
       case 'blur':

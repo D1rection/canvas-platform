@@ -17,7 +17,6 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     brightness: number;
     grayscale: number;
     blur: number;
-    opacity: number;
   }
 
   // 将0-100范围转换为0-1范围
@@ -30,7 +29,6 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     brightness: unitToPercent(getImageFilter(element, "brightness", 1)),
     grayscale: unitToPercent(getImageFilter(element, "grayscale", 0)),
     blur: getImageFilter(element, "blur", 0),
-    opacity: unitToPercent(getImageFilter(element, "opacity", 1)),
   };
 
   // 处理滤镜变化 - 直接更新，不使用防抖
@@ -54,10 +52,6 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
         validValue = Math.max(0, Math.min(20, value));
         modelValue = validValue; // 保持原值（像素单位）
         break;
-      case "opacity":
-        validValue = Math.max(0, Math.min(100, value));
-        modelValue = percentToUnit(validValue); // 转换为0-1范围
-        break;
     }
 
     // 直接更新，确保响应流畅
@@ -65,7 +59,7 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
     onUpdateElement(element.id, filterUpdates);
   };
 
-  // 滤镜滑块组件 - 完全按照OpacitySlider的实现方式
+  // 滤镜滑块组件
   const FilterSlider: React.FC<{
     type: keyof FilterParams;
     label: string;
@@ -168,7 +162,7 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
           max={max}
           value={value}
           step={type === 'blur' ? 0.5 : 1} // 为模糊添加更小的步长，其他使用1
-          onChange={handleInputChange}
+          onInput={handleInputChange}
           onWheel={handleWheel}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
@@ -215,47 +209,6 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
         value={filters.blur}
         unit="px"
       />
-      <FilterSlider
-        type="opacity"
-        label="透明度"
-        min={0}
-        max={100}
-        value={filters.opacity}
-      />
-      {/* 边框设置 */}
-      <div className={styles.borderControls}>
-        <div className={styles.filterControl}>
-          <div className={styles.labelRow}>
-            <label>边框宽度</label>
-            <span className={styles.valueDisplay}>
-              {element.borderWidth || 0}px
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={20}
-            value={element.borderWidth || 0}
-            onChange={(e) => {
-              const width = parseFloat(e.target.value);
-              onUpdateElement(element.id, { borderWidth: width });
-            }}
-            className={styles.slider}
-            step={1}
-          />
-        </div>
-        <div className={styles.filterControl}>
-          <label>边框颜色</label>
-          <input
-            type="color"
-            value={element.borderColor || '#000000'}
-            onChange={(e) => {
-              onUpdateElement(element.id, { borderColor: e.target.value });
-            }}
-            className={styles.colorPicker}
-          />
-        </div>
-      </div>
     </div>
   );
 };

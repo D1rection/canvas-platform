@@ -43,7 +43,6 @@ const ImageElementComponent: React.FC<{
         switch (f.type) {
           case 'brightness':
           case 'grayscale':
-          case 'opacity' as any:
             return `${f.type}(${f.value * 100}%)`;
           case 'blur':
             return `${f.type}(${f.value}px)`;
@@ -77,7 +76,14 @@ const ImageElementComponent: React.FC<{
     return false;
   };
 
-  return (
+  // 计算边框样式
+      const borderStyle = element.borderWidth && element.borderWidth > 0 && element.borderColor ? 
+        `${element.borderWidth}px solid ${element.borderColor}` : 'none';
+      
+      // 计算透明度值
+      const opacityValue = element.opacity !== undefined ? element.opacity : 1;
+      
+      return (
     <div
       data-id={element.id}
       style={{
@@ -89,11 +95,11 @@ const ImageElementComponent: React.FC<{
         transform: `rotate(${transform.rotation}deg)`,
         transformOrigin: "center",
         pointerEvents: "auto",
-        border: element.borderWidth && element.borderColor ? 
-          `${element.borderWidth}px solid ${element.borderColor}` : 'none',
+        border: borderStyle,
         outline: isSelected ? `2px solid #0066FF` : 'none',
         outlineOffset: '-2px',
         boxSizing: 'border-box',
+        opacity: opacityValue,
       }}
       onPointerDown={onPointerDown}
     >
@@ -129,6 +135,13 @@ const ImageElement = memo(ImageElementComponent, (prevProps, nextProps) => {
   
   // 检查可见性
   if (prevElement.visible !== nextElement.visible) return false;
+  
+  // 检查透明度、边框宽度和边框颜色
+  if (prevElement.opacity !== nextElement.opacity ||
+      prevElement.borderWidth !== nextElement.borderWidth ||
+      prevElement.borderColor !== nextElement.borderColor) {
+    return false;
+  }
   
   // 检查位置、大小、缩放、旋转
   if (prevElement.transform.x !== nextElement.transform.x ||
