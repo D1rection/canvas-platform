@@ -568,7 +568,6 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   const addImage: IEditorService["addImage"] = (_payload) => {
   const id = idService.generateNextID(); // 生成新 ID
   const { src, naturalSize, size = naturalSize, filters = [] } = _payload;
-
   // 默认的样式和变换
   const defaultTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
   const newElement: CanvasElement = {

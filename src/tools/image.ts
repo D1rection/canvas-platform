@@ -1,6 +1,27 @@
 import type { ToolHandler } from "./types";
 // 移除未使用的导入
 
+// 限制图片尺寸
+function calculateLimitedSize(
+  natural: { width: number; height: number },
+  maxWidth = 400,
+  maxHeight = 400
+) {
+  if (!natural || natural.width <= 0 || natural.height <= 0) {
+    return { width: 0, height: 0 };
+  }
+
+  const widthRatio = maxWidth / natural.width;
+  const heightRatio = maxHeight / natural.height;
+  const ratio = Math.min(widthRatio, heightRatio, 1); // 不放大
+
+  return {
+    width: Math.round(natural.width * ratio),
+    height: Math.round(natural.height * ratio),
+  };
+}
+
+
 export const imageTool: ToolHandler = {
   cursor: "crosshair",
 
@@ -26,12 +47,15 @@ export const imageTool: ToolHandler = {
         const img = new Image();
         img.onload = () => {
           const naturalSize = { width: img.naturalWidth, height: img.naturalHeight };
+        
+        // 计算限制后的显示尺寸！
+          const displaySize = calculateLimitedSize(naturalSize);
 
           // 调用 editor API 来添加图片
           const id = ctx.editor.addImage({
             src,
             naturalSize,
-            size: naturalSize, // 默认显示尺寸为自然尺寸
+            size: displaySize, // 默认显示尺寸为限制尺寸
             filters: [],
           });
 
@@ -67,3 +91,5 @@ export const imageTool: ToolHandler = {
     input.click();
   },
 };
+
+
