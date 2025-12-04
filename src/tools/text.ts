@@ -13,11 +13,15 @@ export const textTool: ToolHandler = {
             fontFamily: "Arial",
             fontSize: 20,
             color: "#000000",
+            background: 'transparent'
           },
         },
       ],
       lineHeight: 1.5,
       align: "left",
+      x: 0,
+      y: 0,
+      content: ""
     });
 
     // 设置文本框位置
