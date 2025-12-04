@@ -1,17 +1,30 @@
-import type { ToolHandler } from "./types";
+import { type ToolHandler } from "./types";
 
-/**
- * 文本工具
- *
- * - 点击画布：在该位置创建文本框（后续实现）
- * - 创建后自动切回选择工具
- */
 export const textTool: ToolHandler = {
-  cursor: "crosshair",
+  cursor: "text",
 
-  onCanvasPointerDown: (ctx) => {
-    // TODO: 实现文本框创建逻辑
+  onCanvasPointerDown: (ctx, point) => {
+    // 处理添加文本框逻辑
+    const id = ctx.editor.addText({
+      spans: [
+        {
+          text: "点击编辑文本", // 默认文本
+          style: {
+            fontFamily: "Arial",
+            fontSize: 20,
+            color: "#000000",
+          },
+        },
+      ],
+      lineHeight: 1.5,
+      align: "left",
+    });
+
+    // 设置文本框位置
+    ctx.editor.transformElement(id, { x: point.x, y: point.y });
+
+    // 选中并切回选择工具
+    ctx.editor.setSelection([id]);
     ctx.setTool("select");
   },
 };
-

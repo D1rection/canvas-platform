@@ -13,6 +13,7 @@ import {
   CircleShape,
   TriangleShape,
   ImageElement,
+  TextElement,
   SelectionOverlay,
 } from "../../canvas/renderer";
 import ElementToolbar from "../ElementToolbar"; // Import the default wrapped component with error boundary
@@ -102,7 +103,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
 
-  // 增强的状态同步监控和验证
+  console.log("Document elements before render:", document.elements);  // 输出文档元素
+
+  // 方案D：增强的状态同步监控
   useEffect(() => {
     try {
       // 验证document和selection对象的有效性
@@ -222,11 +225,28 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   );
 
   const renderElement = React.useCallback(
-    (el: CanvasElement) => {
-      // 安全检查：确保元素存在且有id
-      if (!el || !el.id) {
-        console.error('Invalid element: Missing ID or element is null');
-        return null;
+    (el: any) => {
+      console.log("Rendering element:", el);
+      const commonProps = {
+        element: el,
+        viewport: viewport as ViewportState,
+        scale,
+        onPointerDown: (e: React.PointerEvent<any>) =>
+          handleShapePointerDown(el.id, e),
+        isHovered: selection.hoveredId === el.id,
+        isSelected: selection.selectedIds.includes(el.id),
+      };
+
+      if (el.type === "shape") {
+        if (el.shape === "rect") {
+          return <RectShape key={el.id} {...commonProps} />;
+        }
+        if (el.shape === "circle") {
+          return <CircleShape key={el.id} {...commonProps} />;
+        }
+        if (el.shape === "triangle") {
+          return <TriangleShape key={el.id} {...commonProps} />;
+        }
       }
 
       try {
@@ -272,6 +292,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         console.warn(`Unknown element type: ${el.type}`);
       } catch (error) {
         console.error(`Error rendering element ${el.id}:`, error);
+      }
+      if (el.type === "text") {
+        console.log("Rendering text element:", el);
+        return <TextElement key={el.id} {...commonProps} />;
       }
       return null;
     },

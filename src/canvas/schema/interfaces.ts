@@ -252,6 +252,10 @@ export interface IEditorService {
    * @returns 新建元素的 ID
    */
   addText(payload: {
+    x: number;
+    y: number;
+    lineHeight: number;
+    spans: { text: string; style: { fontFamily: string; fontSize: number; color: string; background: string; }; }[];
     /** 初始文本内容 */
     content: string;
     /** 可选的文本样式覆盖字段 */

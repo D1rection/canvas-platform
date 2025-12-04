@@ -67,9 +67,11 @@ function App({ canvasContainer }: AppProps) {
 
   // 订阅编辑层状态，驱动渲染
   useEffect(() => {
-    const unsubscribe = editorService.subscribe(setCanvasState);
-    return unsubscribe;
-  }, [editorService]);
+  const unsubscribe = editorService.subscribe((next) => {
+    setCanvasState({ ...next }); // 强制新引用
+  });
+  return unsubscribe;
+}, [editorService]);
 
   // 获取当前工具的处理器
   const toolHandler = getToolHandler(currentTool);

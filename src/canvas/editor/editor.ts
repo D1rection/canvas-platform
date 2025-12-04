@@ -11,6 +11,7 @@ import type {
   ImageFilter,
   Point,
   ShapeElement,
+  TextElement,
   ShapeStyle,
   Size,
   TextSpan,
@@ -625,8 +626,66 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    * @returns 新添加的元素 ID
    */
   const addText: IEditorService["addText"] = (_payload) => {
-    // TODO: 实现文本元素添加逻辑
-    throw new Error("addText not implemented");
+    const id = idService.generateNextID();  // 生成唯一的 ID
+    // 默认文本片段
+    const spans: TextSpan[] = _payload.spans ?? [
+      {
+        text: "点击编辑文本", // 默认文本内容
+        style: {
+          fontFamily: "Arial",
+          fontSize: 20,
+          color: "#000000",
+          background: "#ffffff", // 默认背景色（可选）
+        },
+      },
+    ];
+    // 合并局部样式覆盖
+    if (_payload.style) {
+      spans.forEach(span => {
+        span.style = { ...span.style, ..._payload.style };
+      });
+    }
+      // 创建文本元素
+    const newTextElement: TextElement = {
+      id,
+      type: "text", // 文本类型
+      spans, // 文本片段
+      align: _payload.align ?? "left", // 默认左对齐
+      lineHeight: _payload.lineHeight ?? 1.5, // 默认行高
+      transform: {
+        x: _payload.x ?? 0, // 默认放在 (0, 0) 位置
+        y: _payload.y ?? 0,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0, // 默认无旋转
+      },
+      visible: true, // 默认可见
+      locked: false, // 默认不锁定
+      zIndex: 0,
+      opacity: 1, // 默认不透明
+    };
+
+    console.log("Adding text element:", newTextElement); 
+
+    // 将新的文本元素添加到文档中
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      document: {
+        ...state.document,
+        elements: { ...state.document.elements, [id]: newTextElement }, // 添加文本元素
+        rootElementIds: [...state.document.rootElementIds, id], // 更新根元素 ID 列表
+        updatedAt: Date.now(), // 更新时间戳
+      },
+      selection: {
+        selectedIds: [id], // 默认选中新添加的元素
+      },
+    };
+    
+
+    setState(nextState); // 更新状态
+
+    return id; // 返回新元素的 ID
+
   };
 
   /**
@@ -638,8 +697,31 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     _id: ID,
     _spans: TextSpan[]
   ) => {
-    // TODO: 实现文本内容更新逻辑
-    throw new Error("updateTextContent not implemented");
+    const target = state.document.elements[_id];
+
+  // 检查目标元素是否为文本类型
+  if (!target || target.type !== "text") {
+    console.warn(`[ERROR] Element with id ${_id} is not a text element.`);
+    return;
+  }
+
+  // 更新文本内容（即 spans）
+  target.spans = _spans;
+
+  // 更新文档中的元素
+  const nextState: CanvasRuntimeState = {
+    ...state,
+    document: {
+      ...state.document,
+      elements: {
+        ...state.document.elements,
+        [_id]: target, // 更新目标文本元素
+      },
+      updatedAt: Date.now(), // 更新时间戳
+    },
+  };
+
+  setState(nextState); // 更新状态
   };
 
   // ─────────────────────────────────────────────────────────────

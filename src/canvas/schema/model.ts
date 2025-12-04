@@ -193,7 +193,7 @@ export interface TextStyle {
   /** 是否斜体 */
   italic?: boolean;
   /** 文本装饰（下划线、删除线） */
-  decorations?: TextDecoration;
+  decorations?: Array<"underline" | "line-through" | "none">; // 用一个数组表示多种装饰
 }
 
 /**
