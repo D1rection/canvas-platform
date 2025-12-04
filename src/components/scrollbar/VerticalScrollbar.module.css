@@ -1,0 +1,33 @@
+.root {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  width: 10px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.track {
+  position: relative;
+  width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.01);
+  pointer-events: auto;
+}
+
+.thumb {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.thumbDragging {
+  background-color: rgba(0, 0, 0, 0.2);
+}

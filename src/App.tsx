@@ -8,6 +8,7 @@ import type { CanvasContainer } from "./canvas/di/container";
 import { getToolHandler, type ToolContext } from "./tools";
 import styles from "./App.module.css";
 import { ZoomControl } from "./components/zoomcontrol/ZoomControl";
+import { VerticalScrollbar } from "./components/scrollbar/VerticalScrollbar";
 
 interface AppProps {
   canvasContainer: CanvasContainer;
@@ -25,6 +26,10 @@ function App({ canvasContainer }: AppProps) {
   const elementsLayerRef = useRef<HTMLElement | null>(null);
   // 覆盖层 DOM 引用，用于选中框操作
   const overlayLayerRef = useRef<HTMLElement | null>(null);
+  // 画布视口容器 DOM 引用，用于计算可视高度
+  const viewportWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [viewportPixelHeight, setViewportPixelHeight] = useState(0);
+
 
   // 设置工具
   const setTool = (tool: ToolType) => {
@@ -50,6 +55,28 @@ function App({ canvasContainer }: AppProps) {
     };
     checkPersistedState();
   }, [editorService]);
+
+  // 监听画布容器尺寸变化，用于驱动画布滚动条
+  useEffect(() => {
+    const element = viewportWrapperRef.current;
+    if (!element) {
+      return;
+    }
+
+    // 使用 ResizeObserver 确保在全屏等场景下也能拿到正确高度
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setViewportPixelHeight(entry.contentRect.height);
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [viewportWrapperRef.current]);
+
 
   // 恢复画布
   const handleRecover = useCallback(async () => {
@@ -199,6 +226,15 @@ function App({ canvasContainer }: AppProps) {
     overlayLayerRef.current = ref.current;
   };
 
+  // 通过视口 y 值滚动画布
+  const handleScrollViewportToY = (nextY: number) => {
+    const current = editorService.getState().viewport;
+    editorService.setViewport({
+      ...current,
+      y: nextY,
+    });
+  };
+
   // 全局键盘事件监听
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -262,7 +298,10 @@ function App({ canvasContainer }: AppProps) {
           />
           {/* 画布容器 */}
           <div className={styles.canvasRoot}>
-            <div className={styles.canvasViewportWrapper}>
+            <div
+              className={styles.canvasViewportWrapper}
+              ref={viewportWrapperRef}
+            >
               <CanvasView
                 state={canvasState}
                 cursor={toolHandler.cursor}
@@ -277,6 +316,14 @@ function App({ canvasContainer }: AppProps) {
                 onWheel={handleWheel}
                 onUpdateElement={handleUpdateElement}
               />
+              {viewportPixelHeight > 0 && (
+                <VerticalScrollbar
+                  document={canvasState.document}
+                  viewport={canvasState.viewport}
+                  viewportPixelHeight={viewportPixelHeight}
+                  onChangeViewportY={handleScrollViewportToY}
+                />
+              )}
             </div>
           </div>
         </>
