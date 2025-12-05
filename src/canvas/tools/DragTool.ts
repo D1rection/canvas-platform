@@ -13,6 +13,7 @@ export interface DragState {
   startClientY: number;
   initialPositions: Record<ID, { x: number; y: number }>; // 每个元素的初始位置
   elementDOMElements: Record<ID, HTMLElement>; // 每个元素的 DOM 引用，用于预览
+  originalTransforms: Record<ID, string>; // 每个元素原始的 transform 样式（包含旋转等）
   lastDeltaX: number; // 最后一次移动的deltaX（世界坐标）
   lastDeltaY: number; // 最后一次移动的deltaY（世界坐标）
   selectionBoxElement: HTMLElement | null; // 选中框的 DOM 引用，用于隐藏显示
@@ -116,6 +117,7 @@ export class DragTool {
     // 准备初始位置记录和DOM元素引用
     const initialPositions: Record<ID, { x: number; y: number }> = {};
     const elementDOMElements: Record<ID, HTMLElement> = {};
+    const originalTransforms: Record<ID, string> = {};
     
     // 如果提供了多个元素ID，记录每个元素的初始位置和DOM引用
     const idsToProcess = elementIds && elementIds.length > 0 ? elementIds : [id];
@@ -128,10 +130,11 @@ export class DragTool {
           y: el.transform.y
         };
         
-        // 查找对应的DOM元素
+        // 查找对应的DOM元素，并记录其原始 transform（通常包含 rotate 等）
         const domElement = this.findElementDOM(elId);
         if (domElement) {
           elementDOMElements[elId] = domElement;
+          originalTransforms[elId] = domElement.style.transform || '';
         }
       }
     }
@@ -157,6 +160,7 @@ export class DragTool {
       startClientY: e.clientY,
       initialPositions: initialPositions,
       elementDOMElements: elementDOMElements,
+      originalTransforms: originalTransforms,
       lastDeltaX: 0,
       lastDeltaY: 0,
       selectionBoxElement: selectionBoxElement,
@@ -180,7 +184,14 @@ export class DragTool {
       return false;
     }
 
-    const { startClientX, startClientY, elementIds, initialPositions, elementDOMElements } = this.dragState;
+    const {
+      startClientX,
+      startClientY,
+      elementIds,
+      initialPositions,
+      elementDOMElements,
+      originalTransforms,
+    } = this.dragState;
     const viewport = this.viewportRef.current;
     const scale = viewport.scale || 1;
 
@@ -218,19 +229,20 @@ export class DragTool {
 
       const domElement = elementDOMElements[elId];
       
-      // 优先使用 DOM 预览方式：在原有布局上叠加 translate，避免直接修改 left/top
+      // 优先使用 DOM 预览方式：在原有 transform 的基础上叠加 translate，避免直接修改 left/top
       if (domElement) {
         const previewDx = deltaX * scale;
         const previewDy = deltaY * scale;
 
-        // 从元素数据中获取旋转信息，保持视觉一致
-        const currentElement = this.documentRef?.current?.elements[elId];
-        const rotation =
-          (currentElement?.transform as any)?.rotation != null
-            ? (currentElement!.transform as any).rotation
-            : 0;
+        // 使用拖拽开始时记录的 transform，保持已有的 rotate/scale 等效果
+        const baseTransform =
+          originalTransforms[elId] ??
+          domElement.style.transform ??
+          '';
 
-        domElement.style.transform = `translate(${previewDx}px, ${previewDy}px) rotate(${rotation}deg)`;
+        // CSS 变换从右到左应用，将 translate 放在最左侧，表示最后执行，
+        // 这样平移发生在屏幕坐标系下，不受旋转影响
+        domElement.style.transform = `translate(${previewDx}px, ${previewDy}px) ${baseTransform}`;
         updated = true;
       } else if (this.onUpdateElementCallback) {
         // 回退方案：如果找不到DOM元素，使用state更新
@@ -266,7 +278,15 @@ export class DragTool {
       return;
     }
 
-    const { elementIds, initialPositions, elementDOMElements, lastDeltaX, lastDeltaY, hasStartedDragging } = this.dragState;
+    const {
+      elementIds,
+      initialPositions,
+      elementDOMElements,
+      originalTransforms,
+      lastDeltaX,
+      lastDeltaY,
+      hasStartedDragging,
+    } = this.dragState;
 
     // 只有在实际开始拖拽后，才需要同步到 state
     if (hasStartedDragging && this.onUpdateElementCallback && this.documentRef?.current) {
@@ -294,10 +314,11 @@ export class DragTool {
           },
         });
 
-        // 清除预览样式，让 React 重新渲染正确的样式
+        // 恢复 DOM 上的 transform 到拖拽前的值，预览效果交给 React 重新渲染覆盖
         const domElement = elementDOMElements[elId];
         if (domElement) {
-          domElement.style.transform = '';
+          const original = originalTransforms[elId];
+          domElement.style.transform = original ?? domElement.style.transform ?? '';
         }
       }
     }
