@@ -206,11 +206,11 @@ export class DragTool {
     const deltaX = screenDeltaX / scale;
     const deltaY = screenDeltaY / scale;
 
-    // 保存最后一次移动距离
+    // 保存最后一次移动距离（用于 pointerUp 提交最终 state）
     this.dragState.lastDeltaX = deltaX;
     this.dragState.lastDeltaY = deltaY;
 
-    // 对每个选中的元素应用相同的移动距离
+    // 对每个选中的元素应用相同的移动距离（DOM 预览）
     let updated = false;
     for (const elId of elementIds) {
       const initialPos = initialPositions[elId];
@@ -218,19 +218,19 @@ export class DragTool {
 
       const domElement = elementDOMElements[elId];
       
-      // 优先使用DOM预览方式（性能更好）
+      // 优先使用 DOM 预览方式：在原有布局上叠加 translate，避免直接修改 left/top
       if (domElement) {
-        // 计算新的世界坐标位置
-        const newWorldX = initialPos.x + deltaX;
-        const newWorldY = initialPos.y + deltaY;
-        
-        // 转换为屏幕坐标（用于DOM样式）
-        const screenX = (newWorldX - viewport.x) * scale;
-        const screenY = (newWorldY - viewport.y) * scale;
-        
-        // 直接修改DOM样式，不触发React更新
-        domElement.style.left = `${screenX}px`;
-        domElement.style.top = `${screenY}px`;
+        const previewDx = deltaX * scale;
+        const previewDy = deltaY * scale;
+
+        // 从元素数据中获取旋转信息，保持视觉一致
+        const currentElement = this.documentRef?.current?.elements[elId];
+        const rotation =
+          (currentElement?.transform as any)?.rotation != null
+            ? (currentElement!.transform as any).rotation
+            : 0;
+
+        domElement.style.transform = `translate(${previewDx}px, ${previewDy}px) rotate(${rotation}deg)`;
         updated = true;
       } else if (this.onUpdateElementCallback) {
         // 回退方案：如果找不到DOM元素，使用state更新
@@ -268,40 +268,36 @@ export class DragTool {
 
     const { elementIds, initialPositions, elementDOMElements, lastDeltaX, lastDeltaY, hasStartedDragging } = this.dragState;
 
-    // 只有在实际开始拖拽后，才需要同步到state和清除DOM样式
-    if (hasStartedDragging) {
-      // 如果有DOM预览更新，需要同步到state
+    // 只有在实际开始拖拽后，才需要同步到 state
+    if (hasStartedDragging && this.onUpdateElementCallback && this.documentRef?.current) {
       for (const elId of elementIds) {
-        const domElement = elementDOMElements[elId];
         const initialPos = initialPositions[elId];
-        
-        if (domElement && initialPos && this.onUpdateElementCallback) {
-          // 获取元素当前的transform属性，保留scaleX、scaleY和rotation
-          const currentElement = this.documentRef?.current?.elements[elId];
-          const currentTransform = currentElement?.transform || {};
-          
-          const scaleX = (currentTransform as any)?.scaleX || 1;
-          const scaleY = (currentTransform as any)?.scaleY || 1;
-          const rotation = (currentTransform as any)?.rotation || 0;
-          
-          // 使用最后一次移动距离计算最终位置
-          const finalX = initialPos.x + lastDeltaX;
-          const finalY = initialPos.y + lastDeltaY;
-          
-          // 更新state
-          this.onUpdateElementCallback(elId, {
-            transform: {
-              x: finalX,
-              y: finalY,
-              scaleX,
-              scaleY,
-              rotation
-            },
-          });
-          
-          // 清除预览样式，让React重新渲染正确的样式
-          domElement.style.left = '';
-          domElement.style.top = '';
+        if (!initialPos) continue;
+
+        const currentElement = this.documentRef.current.elements[elId];
+        const currentTransform = currentElement?.transform || {};
+
+        const scaleX = (currentTransform as any)?.scaleX || 1;
+        const scaleY = (currentTransform as any)?.scaleY || 1;
+        const rotation = (currentTransform as any)?.rotation || 0;
+
+        const finalX = initialPos.x + lastDeltaX;
+        const finalY = initialPos.y + lastDeltaY;
+
+        this.onUpdateElementCallback(elId, {
+          transform: {
+            x: finalX,
+            y: finalY,
+            scaleX,
+            scaleY,
+            rotation,
+          },
+        });
+
+        // 清除预览样式，让 React 重新渲染正确的样式
+        const domElement = elementDOMElements[elId];
+        if (domElement) {
+          domElement.style.transform = '';
         }
       }
     }
@@ -311,7 +307,6 @@ export class DragTool {
       this.dragState.selectionBoxElement.style.display = '';
     }
 
-    // 如果没有DOM更新，说明使用的是回退方案（已经在move中更新了state），不需要额外处理
     this.dragState = null;
   }
 

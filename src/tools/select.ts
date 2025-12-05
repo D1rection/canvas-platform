@@ -342,28 +342,20 @@ export const selectTool: ToolHandler = {
     }
   },
 
-  onCanvasPointerMove: (ctx, point, ev) => {
-    // 优先处理元素拖拽
-    if (isElementBeingDragged() && ev) {
-      dragTool.handlePointerMove(ev.clientX, ev.clientY);
-    }
-    // 然后处理框选
-    else if (ctx.editor.getState().marqueeSelection?.startPoint) {
+  onCanvasPointerMove: (ctx, point, _ev) => {
+    // 只处理框选，元素拖拽的 move 由全局监听器处理
+    if (ctx.editor.getState().marqueeSelection?.startPoint) {
       ctx.editor.updateMarqueeSelection(point);
     }
   },
 
   onCanvasPointerUp: (ctx, point) => {
-    // 优先结束拖拽
-    if (isElementBeingDragged()) {
-      dragTool.handlePointerUp();
-    }
-    // 然后完成框选
-    else {
+    // 只处理框选结束，元素拖拽的 up 由全局监听器处理
+    if (ctx.editor.getState().marqueeSelection?.startPoint) {
       ctx.editor.finishMarqueeSelection(point);
-      // 清理全局监听器
-      cleanupMarqueeGlobalListeners();
     }
+    // 清理框选的全局监听器
+    cleanupMarqueeGlobalListeners();
   },
 
   onKeyDown: (ctx, ev) => {
