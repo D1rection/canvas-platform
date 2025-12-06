@@ -17,6 +17,10 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onCancel,
 }) => {
   const { spans, align, lineHeight, transform } = element;
+  
+  // MVP 简化：提取所有 span 的文本合并编辑
+  // 注意：这会丢失富文本的多样式信息，Figma 也是通过复杂的 Model 处理的
+  // 此时我们假设编辑后统一应用第一个 span 的样式
   const initialText = spans.map((s) => s.text).join("");
   const [value, setValue] = useState(initialText);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

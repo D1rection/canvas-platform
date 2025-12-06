@@ -147,10 +147,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   // 是否正在进行编辑操作（拖拽、缩放、旋转）
   const [isEditing, setIsEditing] = useState(false);
 
-  // 1. 新增：正在编辑的元素 ID
+  // 正在编辑的元素 ID
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
 
-  // 2. 新增：双击处理函数
+  // 双击处理函数
   const handleElementDoubleClick = (id: string, e: React.MouseEvent) => {
     // 只有文本类型才允许进入编辑模式
     const el = document.elements[id];
@@ -161,7 +161,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
   };
 
-  // 3. 新增：提交文本更改
+  // 提交文本更改
   const handleTextCommit = (id: string, newText: string) => {
     const el = document.elements[id];
     if (!el || el.type !== 'text') return;
@@ -264,7 +264,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (el: any) => {
 
-      // 1. 优先检查：是否处于编辑模式？
+      // 优先检查：是否处于编辑模式？
       if (el.type === "text" && editingElementId === el.id) {
         return (
           <TextEditor
