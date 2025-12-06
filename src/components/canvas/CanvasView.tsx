@@ -14,6 +14,7 @@ import {
   TriangleShape,
   ImageElement,
   TextElement,
+  TextEditor,
   SelectionOverlay,
 } from "../../canvas/renderer";
 import ElementToolbar from "../ElementToolbar"; // Import the default wrapped component with error boundary
@@ -21,6 +22,7 @@ import styles from "./CanvasView.module.css";
 import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelectionBox";
 import { RotateTool } from "../../canvas/tools/RotateTool";
 import { ScaleTool, ScaleDirection } from "../../canvas/tools/ScaleTool";
+
 
 interface CanvasViewProps {
   state: CanvasRuntimeState;
@@ -102,6 +104,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
+  
 
   console.log("Document elements before render:", document.elements);  // 输出文档元素
 
@@ -143,6 +146,38 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   // 是否正在进行编辑操作（拖拽、缩放、旋转）
   const [isEditing, setIsEditing] = useState(false);
+
+  // 1. 新增：正在编辑的元素 ID
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
+
+  // 2. 新增：双击处理函数
+  const handleElementDoubleClick = (id: string, e: React.MouseEvent) => {
+    // 只有文本类型才允许进入编辑模式
+    const el = document.elements[id];
+    if (el && el.type === 'text') {
+      setEditingElementId(id);
+      // 双击时可能需要阻止默认选中文本的行为
+      e.preventDefault(); 
+    }
+  };
+
+  // 3. 新增：提交文本更改
+  const handleTextCommit = (id: string, newText: string) => {
+    const el = document.elements[id];
+    if (!el || el.type !== 'text') return;
+
+    // 构造新的 spans（这里简化逻辑：全量替换为一个 span）
+    // 实际生产中可能需要保留原有的多段样式结构
+    const currentStyle = el.spans[0]?.style;
+    const newSpans = [{
+      text: newText,
+      style: currentStyle
+    }];
+
+    handleUpdateElement(id, { spans: newSpans });
+    setEditingElementId(null);
+  };
+
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = useRef<HTMLDivElement | null>(null);
   const documentRef = useRef(document);
@@ -224,8 +259,25 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     [isDragging, cursor, onElementPointerDown]
   );
 
+
   const renderElement = React.useCallback(
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (el: any) => {
+
+      // 1. 优先检查：是否处于编辑模式？
+      if (el.type === "text" && editingElementId === el.id) {
+        return (
+          <TextEditor
+            key={el.id}
+            element={el}
+            viewport={viewport as ViewportState}
+            scale={scale}
+            onCommit={(text) => handleTextCommit(el.id, text)}
+            onCancel={() => setEditingElementId(null)}
+          />
+        );
+      }
+
       console.log("Rendering element:", el);
       const commonProps = {
         element: el,
@@ -236,6 +288,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         isHovered: selection.hoveredId === el.id,
         isSelected: selection.selectedIds.includes(el.id),
       };
+
+      
 
       if (el.type === "shape") {
         if (el.shape === "rect") {
@@ -295,7 +349,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       }
       if (el.type === "text") {
         console.log("Rendering text element:", el);
-        return <TextElement key={el.id} {...commonProps} />;
+        return (
+          <TextElement
+            key={el.id}
+            {...commonProps}
+            onDoubleClick={(e) => handleElementDoubleClick(el.id, e)}
+          />
+        );
       }
       return null;
     },
@@ -305,6 +365,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       selection.hoveredId,
       selection.selectedIds,
       handleShapePointerDown,
+      editingElementId,
     ]
   );
 

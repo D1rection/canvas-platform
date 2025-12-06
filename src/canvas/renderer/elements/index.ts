@@ -11,4 +11,5 @@ export { ImageElement } from "./ImageElement";
 // TODO: 后续添加
 
 export { TextElement } from "./TextElement";
+export { TextEditor } from "./TextEditor";
 
