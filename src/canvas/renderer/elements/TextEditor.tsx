@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from "react";
+import React, { useRef, useState, useLayoutEffect } from "react";
 import type { TextElement, ViewportState } from "../../schema/model";
 
 interface TextEditorProps {
@@ -17,10 +17,6 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onCancel,
 }) => {
   const { spans, align, lineHeight, transform } = element;
-  
-  // MVP 简化：提取所有 span 的文本合并编辑
-  // 注意：这会丢失富文本的多样式信息，Figma 也是通过复杂的 Model 处理的
-  // 此时我们假设编辑后统一应用第一个 span 的样式
   const initialText = spans.map((s) => s.text).join("");
   const [value, setValue] = useState(initialText);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -88,7 +84,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
         lineHeight: lineHeight,
         textAlign: align,
         background: "transparent",
-        border: "1px solid #18A0FB", // 编辑时的聚焦边框
+        border: "1px solid #01090eff", // 编辑时的聚焦边框
         outline: "none",
         padding: "2px 4px", // 与 TextElement padding 保持一致
         margin: 0,
