@@ -4,11 +4,13 @@ import { OpacitySlider } from "./OpacitySlider";
 import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
 import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控制
 import { ImageEditorImpl as ImageEditor } from "./ImageEditor"; // 引入图片编辑器
+import { TextEditorImpl as TextEditor } from "./TextEditor"; // 引入文本编辑器
 import type {
   ID,
   CanvasElement,
   ShapeElement,
   ImageElement as ImageElementModel,
+  TextElement,
   ViewportState,
 } from "../../canvas/schema/model";
 import styles from "./ElementToolbar.module.css";
@@ -65,6 +67,9 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
 
   // 检查是否选中了单个图片元素
   const isSingleImageElement = selectedElements.length === 1 && selectedElements[0].type === "image";
+  
+  // 检查是否选中了单个文本元素
+  const isSingleTextElement = selectedElements.length === 1 && selectedElements[0].type === "text";
 
   // 注意：这个函数暂时未使用，但保留以备将来需要
   // const getCommonPropertyValue = <T extends keyof CanvasElement>(property: T): CanvasElement[T] | null => {
@@ -292,6 +297,19 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     return (
       <ImageEditor
         element={imageElement}
+        onUpdateElement={onUpdateElement}
+        isEditing={isEditing}
+        viewport={viewport}
+      />
+    );
+  }
+  
+  // 对于文本元素，显示专门的文本编辑器
+  if (isSingleTextElement) {
+    const textElement = selectedElements[0] as TextElement;
+    return (
+      <TextEditor
+        element={textElement}
         onUpdateElement={onUpdateElement}
         isEditing={isEditing}
         viewport={viewport}

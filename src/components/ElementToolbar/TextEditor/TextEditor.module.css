@@ -1,0 +1,80 @@
+/* TextEditor.module.css */
+.toolbarWrapper {
+  position: fixed;
+  background-color: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+  min-width: 400px;
+  max-width: 600px;
+  overflow: visible;
+  box-sizing: border-box;
+}
+.controlGroup {
+  position: relative;
+  margin-right: 8px;
+}
+
+.fontFamilySelect {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dropdownArrow {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+.fontFamilyDropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  max-height: 200px;
+  overflow-y: auto;
+  width: max-content;
+  min-width: 150px;
+  margin-bottom: 8px;
+}
+
+.fontFamilyOption {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.fontFamilyOption:hover {
+  background-color: #f5f5f5;
+}
+
+.selected {
+  background-color: #e6f7ff;
+  font-weight: bold;
+}
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .toolbarWrapper {
+    min-width: 300px;
+    max-width: 400px;
+    flex-wrap: wrap;
+  }
+}

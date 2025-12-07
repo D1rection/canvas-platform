@@ -72,15 +72,15 @@
 
 .colorPickerDropdown {
   position: absolute;
-  top: 100%;
+  bottom: 100%;
   left: auto;
   right: 0;
-  margin-top: 8px;
+  margin-bottom: 8px;
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(8px);
   border-radius: 12px;
   padding: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
   border: 1px solid #e8e8e8;
   width: 220px;
   z-index: 1001;
