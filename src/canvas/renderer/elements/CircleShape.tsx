@@ -30,9 +30,6 @@ export const CircleShape: React.FC<CircleShapeProps> = React.memo(({
   const width = size.width * scale;
   const height = size.height * scale;
 
-    // 圆形使用宽高一致：取最小值，保持圆形比例
-    const diameter = Math.min(width, height);
-
     const hoverOutlineWidth = 2 * scale;
 
   return (
@@ -45,13 +42,13 @@ export const CircleShape: React.FC<CircleShapeProps> = React.memo(({
         position: "absolute",
         left,
         top,
-        width: diameter,
-        height: diameter,
+        width,
+        height,
         backgroundColor: style.fill,
         borderStyle: "solid",
         borderColor: style.strokeColor,
         borderWidth: style.strokeWidth * scale,
-        borderRadius: "50%", // 关键：圆形
+        borderRadius: "50%", // 关键：圆形/椭圆
         boxSizing: "border-box",
         transform: `rotate(${transform.rotation || 0}deg)`,
         transformOrigin: "center",
