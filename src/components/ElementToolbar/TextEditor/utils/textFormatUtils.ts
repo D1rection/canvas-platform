@@ -5,14 +5,58 @@ export const COMMON_FONTS = [
   "Arial",
   "Helvetica",
   "Times New Roman",
-  "Georgia",
-  "Verdana",
-  "Courier New",
-  "Impact",
-  "Comic Sans MS",
   "PingFang SC",
   "Microsoft YaHei",
+  "SimSun",
+  "SimHei",
+  "KaiTi",
+  "FangSong",
+  "STSong",
+  "STKaiti",
 ];
+
+// 字体样式支持信息映射表
+const FONT_STYLE_SUPPORT = {
+  // 英文字体 - 通常支持所有样式
+  "Arial": { bold: true, italic: true },
+  "Helvetica": { bold: true, italic: true },
+  "Times New Roman": { bold: true, italic: true },
+  
+  // 中文字体 - 部分支持所有样式，部分只支持部分样式
+  "PingFang SC": { bold: true, italic: true },
+  "Microsoft YaHei": { bold: true, italic: true },
+  "SimSun": { bold: true, italic: true }, // 宋体通常支持粗体和斜体
+  "SimHei": { bold: true, italic: false }, // 黑体只支持粗体，不支持斜体
+  "KaiTi": { bold: false, italic: true }, // 楷体只支持斜体，不支持粗体
+  "FangSong": { bold: false, italic: false }, // 仿宋不支持粗体和斜体
+  "STSong": { bold: true, italic: true }, // 华文中宋支持所有样式
+  "STKaiti": { bold: true, italic: false }, // 华文楷体只支持粗体，不支持斜体
+};
+
+// 字体回退映射表 - 当原字体不支持某个样式时，使用替代字体
+const FONT_FALLBACK_MAP: Record<string, string> = {
+  "SimHei": "PingFang SC", // 黑体回退到苹方
+  "KaiTi": "PingFang SC", // 楷体回退到苹方
+  "FangSong": "PingFang SC", // 仿宋回退到苹方
+  "STKaiti": "PingFang SC", // 华文楷体回退到苹方
+};
+
+// 确保斜体样式能正确应用于中文字体
+export const ensureFontFamilySupport = (fontFamily: string, style?: Partial<{ bold: boolean; italic: boolean }>): string => {
+  if (!style) return fontFamily;
+  
+  const fontSupport = FONT_STYLE_SUPPORT[fontFamily as keyof typeof FONT_STYLE_SUPPORT];
+  
+  // 如果字体支持所有请求的样式，直接返回
+  if (fontSupport && 
+      (!style.bold || fontSupport.bold) && 
+      (!style.italic || fontSupport.italic)) {
+    return fontFamily;
+  }
+  
+  // 如果字体不支持某个样式，使用替代字体
+  return FONT_FALLBACK_MAP[fontFamily] || fontFamily;
+};
 
 // 默认字体大小
 export const DEFAULT_FONT_SIZE = 20;

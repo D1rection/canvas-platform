@@ -299,7 +299,7 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
 // 使用Context Provider包装组件
 export const TextEditor: React.FC<TextEditorProps> = (props) => {
   return (
-    <TextEditProvider>
+    <TextEditProvider value={{ isEditing: props.isEditing }}>
       <TextEditorImpl {...props} />
     </TextEditProvider>
   );

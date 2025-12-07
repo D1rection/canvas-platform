@@ -1,16 +1,22 @@
 /* TextEditor.module.css */
 .toolbarWrapper {
-  position: fixed;
-  background-color: #ffffff;
-  border: 1px solid #d0d0d0;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  padding: 8px;
+  position: absolute;
+  /* 恢复原始代码中的毛玻璃和半透明效果 */
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
+  gap: 12px;
+  min-width: fit-content; /* 根据内容自适应最小宽度 */
+  width: max-content; /* 根据内容自适应宽度 */
   z-index: 1000;
-  min-width: 400px;
-  max-width: 600px;
+  pointer-events: auto;
+  transition: top 0.2s ease, left 0.2s ease;
+  user-select: none;
   overflow: visible;
   box-sizing: border-box;
 }

@@ -4,7 +4,7 @@ import { OpacitySlider } from "./OpacitySlider";
 import { BorderWidthControl } from "./BorderWidthControl"; // 引入边框宽度控制
 import { CornerRadiusControl } from "./CornerRadiusControl"; // 引入圆角控制
 import { ImageEditorImpl as ImageEditor } from "./ImageEditor"; // 引入图片编辑器
-import { TextEditorImpl as TextEditor } from "./TextEditor"; // 引入文本编辑器
+import { TextEditor } from "./TextEditor"; // 引入文本编辑器
 import type {
   ID,
   CanvasElement,

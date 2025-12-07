@@ -342,20 +342,20 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           };
           return <ImageElement key={el.id} {...imageProps} />;
         }
+        if (el.type === "text") {
+          console.log("Rendering text element:", el);
+          return (
+            <TextElement
+              key={el.id}
+              {...commonProps}
+              onDoubleClick={(e) => handleElementDoubleClick(el.id, e)}
+            />
+          );
+        }
         // 处理未知元素类型
         console.warn(`Unknown element type: ${el.type}`);
       } catch (error) {
         console.error(`Error rendering element ${el.id}:`, error);
-      }
-      if (el.type === "text") {
-        console.log("Rendering text element:", el);
-        return (
-          <TextElement
-            key={el.id}
-            {...commonProps}
-            onDoubleClick={(e) => handleElementDoubleClick(el.id, e)}
-          />
-        );
       }
       return null;
     },
@@ -431,7 +431,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       !target.closest(`.${styles.toolbarWrapper}`) &&
       !target.closest('[data-toolbar-element="true"]') &&
       (target.closest('[class*="selection"]') || 
-       target.closest('[data-element-id]'))
+       target.closest('[data-id]')) // 使用data-id代替data-element-id，与TextElement组件保持一致
     );
   };
 

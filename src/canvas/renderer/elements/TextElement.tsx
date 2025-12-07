@@ -26,6 +26,7 @@ export const TextElement: React.FC<TextElementProps> = ({
 
   return (
     <div
+      data-id={element.id} // 添加data-id属性，以便DragTool能找到DOM元素
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick} // 绑定双击事件
       style={{
