@@ -8,7 +8,7 @@ export const textTool: ToolHandler = {
     const id = ctx.editor.addText({
       spans: [
         {
-          text: "点击编辑文本", // 默认文本
+          text: "双击编辑文本", // 默认文本
           style: {
             fontFamily: "Arial",
             fontSize: 20,
