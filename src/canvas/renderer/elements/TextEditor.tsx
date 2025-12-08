@@ -69,13 +69,26 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     }
   };
 
+  const stopPointerPropagation = (
+    e: React.PointerEvent<HTMLTextAreaElement>
+  ) => {
+    e.stopPropagation();
+    // 防止 document 级的 pointer 监听器（用于框选/拖拽）收到事件
+    e.nativeEvent.stopImmediatePropagation?.();
+  };
+
   return (
     <textarea
       ref={textareaRef}
+      id={element.id}
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
+      onPointerDownCapture={stopPointerPropagation}
+      onPointerMoveCapture={stopPointerPropagation}
+      onPointerUpCapture={stopPointerPropagation}
+      onPointerCancelCapture={stopPointerPropagation}
       autoFocus
       style={{
         position: "absolute",
