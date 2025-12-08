@@ -52,47 +52,51 @@ export const TextElement: React.FC<TextElementProps> = ({
   return (
     <div
       ref={containerRef}
-      data-id={element.id} // 添加data-id属性，以便DragTool能找到DOM元素
+      data-id={element.id}
       onPointerDown={onPointerDown}
-      onDoubleClick={onDoubleClick} // 绑定双击事件
+      onDoubleClick={onDoubleClick}
       style={{
         position: "absolute",
         left: screenX,
         top: screenY,
         width,
         height: "auto",
-        lineHeight: lineHeight, // 注意：TextEditor 使用的是 fontSize * scale，这里是否需要统一单位？
-        // 修正：通常 line-height 如果是无单位数字（如 1.5），会继承 fontSize。
-        // 但为了渲染一致性，建议显式计算或者确保 CSS 继承关系正确。
-        
-        textAlign: align,
-        cursor: "default", // 编辑前是 default，不是 text，直到双击
-        whiteSpace: "pre-wrap",
-        wordWrap: "break-word",
-        padding: "2px 4px", // 这里的 padding 必须和 Editor 一致
         pointerEvents: "auto",
-        userSelect: "none",
-        // 关键优化：支持旋转，确保视觉一致
-        transform: `rotate(${transform.rotation}rad)`,
-        transformOrigin: "0 0", // 保持旋转原点一致
+        overflow: "visible",
       }}
     >
-      {spans.map((span, index) => (
-        <span
-          key={index}
-          style={{
-            fontFamily: span.style.fontFamily,
-            fontSize: span.style.fontSize * scale,
-            color: span.style.color,
-            background: span.style.background,
-            fontWeight: span.style.bold ? "bold" : "normal",
-            fontStyle: span.style.italic ? "italic" : "normal",
-            textDecoration: span.style.decorations?.join(" "),
-          }}
-        >
-          {span.text}
-        </span>
-      ))}
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          lineHeight,
+          textAlign: align,
+          cursor: "default",
+          whiteSpace: "pre-wrap",
+          wordWrap: "break-word",
+          padding: "2px 4px",
+          userSelect: "none",
+          transform: `rotate(${transform.rotation}deg)`,
+          transformOrigin: "center",
+        }}
+      >
+        {spans.map((span, index) => (
+          <span
+            key={index}
+            style={{
+              fontFamily: span.style.fontFamily,
+              fontSize: span.style.fontSize * scale,
+              color: span.style.color,
+              background: span.style.background,
+              fontWeight: span.style.bold ? "bold" : "normal",
+              fontStyle: span.style.italic ? "italic" : "normal",
+              textDecoration: span.style.decorations?.join(" "),
+            }}
+          >
+            {span.text}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };
