@@ -21,6 +21,7 @@ interface ElementToolbarProps {
   elements?: CanvasElement[]; // 新增：多个选中的元素
   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
   isEditing?: boolean; // 新增：编辑状态标志
+  editingElementId?: string; // 新增：当前正在编辑的元素 ID
   viewport: ViewportState; // 与定义层一致：包含 x/y/scale
 }
 
@@ -55,6 +56,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
   elements = [],
   onUpdateElement,
   isEditing = false,
+  editingElementId,
   viewport,
 }) => {
   // 如果提供了elements数组，优先使用它；否则使用单个element作为数组
@@ -379,6 +381,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
         element={textElement}
         onUpdateElement={onUpdateElement}
         isEditing={isEditing}
+        editingElementId={editingElementId}
         viewport={viewport}
       />
     );

@@ -18,6 +18,7 @@ interface TextEditorProps {
   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
   viewport?: ViewportState;
   isEditing?: boolean;
+  editingElementId?: string;
 }
 
 const TextEditorImpl: React.FC<TextEditorProps> = ({
@@ -25,6 +26,7 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
   onUpdateElement,
   viewport,
   isEditing = false,
+  editingElementId,
 }) => {
   const textElement = element as TextElement;
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -262,12 +264,16 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
     e.stopPropagation();
   };
 
+  // 工具栏样式 - 与其他元素工具栏保持一致的隐藏逻辑
+  // 当处于拖动、缩放或旋转操作时隐藏，在文本内容编辑时保持可见
   // 工具栏样式
+  // 当处于文本内容编辑状态时（editingElementId 与当前元素 id 匹配），工具栏保持可见
+  // 当处于其他编辑操作（如拖动、缩放、旋转）时，工具栏隐藏
   const toolbarStyle: React.CSSProperties = {
     top: `${position.top}px`,
     left: `${position.left}px`,
-    opacity: isEditing ? 0 : 1,
-    pointerEvents: isEditing ? "none" : "auto",
+    opacity: isEditing && editingElementId !== element.id ? 0 : 1,
+    pointerEvents: isEditing && editingElementId !== element.id ? "none" : "auto",
     transition: "opacity 0.2s ease-in-out",
   };
 

@@ -722,6 +722,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
                 .filter((el): el is CanvasElement => Boolean(el))}
               onUpdateElement={handleUpdateElement}
               isEditing={isEditing}
+              editingElementId={editingElementId ?? undefined}
               viewport={viewport}
             />
           )}
