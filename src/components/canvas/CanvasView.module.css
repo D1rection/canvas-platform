@@ -4,6 +4,7 @@
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: none;
   background-color: #f8f8f8;
 }
 

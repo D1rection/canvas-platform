@@ -318,7 +318,7 @@ function App({ canvasContainer }: AppProps) {
       toolHandler.onKeyDown?.(toolContext, e);
     };
 
-    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('keydown', handleGlobalKeyDown, { passive: false });
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [toolHandler, toolContext, editorService, currentTool, setTool]);
 
@@ -332,7 +332,7 @@ function App({ canvasContainer }: AppProps) {
         setTool(nextTool);
       }
     };
-    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("keyup", handleKeyUp, { passive: false });
     return () => window.removeEventListener("keyup", handleKeyUp);
   }, [setTool]);
 
