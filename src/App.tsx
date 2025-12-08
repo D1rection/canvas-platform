@@ -26,6 +26,7 @@ function App({ canvasContainer }: AppProps) {
   const elementsLayerRef = useRef<HTMLElement | null>(null);
   // 覆盖层 DOM 引用，用于选中框操作
   const overlayLayerRef = useRef<HTMLElement | null>(null);
+  const temporaryToolRef = useRef<ToolType | null>(null);
   // 画布视口容器 DOM 引用，用于计算可视高度
   const viewportWrapperRef = useRef<HTMLDivElement | null>(null);
   const [viewportPixelHeight, setViewportPixelHeight] = useState(0);
@@ -238,6 +239,29 @@ function App({ canvasContainer }: AppProps) {
   // 全局键盘事件监听
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isEditable =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+
+      if (
+        e.code === "Space" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !isEditable
+      ) {
+        e.preventDefault();
+        if (temporaryToolRef.current === null) {
+          temporaryToolRef.current = currentTool;
+          setTool("pan");
+        }
+        return;
+      }
+
       // 处理撤销/重做快捷键
       if ((e.ctrlKey || e.metaKey) && !e.altKey) {
         if (e.key === 'z' && !e.shiftKey) {
@@ -283,7 +307,21 @@ function App({ canvasContainer }: AppProps) {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [toolHandler, toolContext, editorService, currentTool]);
+  }, [toolHandler, toolContext, editorService, currentTool, setTool]);
+
+  useEffect(() => {
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      if (temporaryToolRef.current) {
+        e.preventDefault();
+        const nextTool = temporaryToolRef.current;
+        temporaryToolRef.current = null;
+        setTool(nextTool);
+      }
+    };
+    window.addEventListener("keyup", handleKeyUp);
+    return () => window.removeEventListener("keyup", handleKeyUp);
+  }, [setTool]);
 
 
   // 全局右键菜单
