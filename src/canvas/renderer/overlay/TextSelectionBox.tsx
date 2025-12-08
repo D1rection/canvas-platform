@@ -1,23 +1,9 @@
 import React from "react";
 import type { ID } from "../../schema/model";
 import { ScaleDirection } from "../../tools/ScaleTool";
+import { useSignalPointerDown } from "../../../hooks/useSignalPointerDown";
 
-const DOUBLE_CLICK_INTERVAL = 250;
-const DOUBLE_CLICK_DISTANCE = 4;
-let lastPointerDown: { time: number; x: number; y: number } | null = null;
 const THEME_COLOR = "#5ea500";
-
-function isRapidSequentialPointerDown(e: React.PointerEvent) {
-  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-  const last = lastPointerDown;
-  const isRapid =
-    last &&
-    now - last.time <= DOUBLE_CLICK_INTERVAL &&
-    Math.hypot(e.clientX - last.x, e.clientY - last.y) <= DOUBLE_CLICK_DISTANCE;
-
-  lastPointerDown = { time: now, x: e.clientX, y: e.clientY };
-  return !!isRapid;
-}
 
 interface TextSelectionBoxProps {
   left: number;
@@ -56,22 +42,19 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
   onSelectionBoxPointerDown,
   onSelectionBoxDoubleClick,
 }) => {
+  const { handlePointerDown, cancelPending } = useSignalPointerDown(
+    onSelectionBoxPointerDown,
+    { delay: 250, dragThreshold: 3 }
+  );
+
   const handleSize = 12;
   const handleOffset = -handleSize / 2;
   const rotateControlDistance = 32;
   const rotateLineHeight = rotateControlDistance;
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isRapidSequentialPointerDown(e)) {
-      e.stopPropagation();
-      return;
-    }
-    e.stopPropagation();
-    onSelectionBoxPointerDown?.(e);
-  };
-
   const handleDoubleClick = (e: React.MouseEvent<Element>) => {
     e.stopPropagation();
+    cancelPending();
     onSelectionBoxDoubleClick?.(id, e);
   };
 

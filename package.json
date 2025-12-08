@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.8",
+    "@types/lodash-es": "^4.17.12",
+    "lodash-es": "^4.17.21",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0"
