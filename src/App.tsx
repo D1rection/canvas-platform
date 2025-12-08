@@ -169,14 +169,27 @@ function App({ canvasContainer }: AppProps) {
     point: Point,
     e: React.WheelEvent<HTMLDivElement>
   ) => {
-    if(e.ctrlKey || e.metaKey) editorService.zoomAt(point, e.deltaY < 0 ? 0.1 : -0.1);
-    else if(e.shiftKey) {
-      const unit = e.deltaX > 0 ? 50 : -50;
-      editorService.moveViewport({x: unit, y: 0});
+    if (e.ctrlKey || e.metaKey) {
+      editorService.zoomAt(point, e.deltaY < 0 ? 0.1 : -0.1);
+      return;
     }
-    else {
+
+    // deltaMode === 0 的滚轮事件通常来自触控板，表示以像素为单位的平移
+    if (e.deltaMode === 0) {
+      const viewport = editorService.getState().viewport;
+      const scale = viewport.scale || 1;
+      const moveX = e.deltaX / scale;
+      const moveY = e.deltaY / scale;
+      editorService.moveViewport({ x: moveX, y: moveY });
+      return;
+    }
+
+    if (e.shiftKey) {
+      const unit = e.deltaY > 0 ? -50 : 50;
+      editorService.moveViewport({ x: unit, y: 0 });
+    } else {
       const unit = e.deltaY > 0 ? 50 : -50;
-      editorService.moveViewport({x: 0, y: unit});
+      editorService.moveViewport({ x: 0, y: unit });
     }
   };
 
