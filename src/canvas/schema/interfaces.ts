@@ -262,6 +262,8 @@ export interface IEditorService {
     style?: Partial<TextStyle>;
     /** 可选的对齐方式，默认 'left' */
     align?: 'left' | 'center' | 'right';
+    /** 可选的初始大小，若省略则使用默认文本框尺寸 */
+    size?: Size;
   }): ID;
 
   /**

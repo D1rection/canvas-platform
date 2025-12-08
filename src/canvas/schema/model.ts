@@ -307,6 +307,12 @@ export interface TextElement extends ElementBase {
    * - 可以是绝对像素值或相对于 `fontSize` 的倍数，具体由渲染层约定
    */
   lineHeight: number;
+  /**
+   * 文本框尺寸（场景坐标单位）
+   *
+   * - 控制文本排版区域，可通过缩放/拖拽调整
+   */
+  size: Size;
 }
 
 /**

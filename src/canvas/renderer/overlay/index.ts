@@ -3,6 +3,7 @@
  * - 渲染选中框、悬停效果、拖拽预览、对齐辅助线等
  */
 export { SelectionBox } from "./SelectionBox";
+export { TextSelectionBox } from "./TextSelectionBox";
 export { SelectionOverlay } from "./SelectionOverlay";
 export { MultiSelectionBox } from "./MultiSelectionBox";
 

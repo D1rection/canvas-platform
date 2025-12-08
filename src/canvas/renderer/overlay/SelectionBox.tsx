@@ -2,6 +2,11 @@ import React from "react";
 import type { ID } from "../../../canvas/schema/model";
 import { ScaleDirection } from "../../../canvas/tools/ScaleTool";
 
+const THEME_COLOR = "#5ea500";
+const HANDLE_SIZE = 10;
+const ROTATE_HANDLE_SIZE = 14;
+const ROTATE_DISTANCE = 16;
+
 interface SelectionBoxProps {
   left: number;
   top: number;
@@ -29,17 +34,14 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
   onScaleHandlePointerDown,
   onSelectionBoxPointerDown,
 }) => {
-  const handleSize = 10;
-  const handleOffset = -handleSize / 2;
-  // 旋转控制点距离顶部的距离
-  const rotateControlDistance = 25;
+  const handleOffset = -HANDLE_SIZE / 2;
 
   const handleStyle: React.CSSProperties = {
     position: "absolute",
-    width: handleSize,
-    height: handleSize,
+    width: HANDLE_SIZE,
+    height: HANDLE_SIZE,
     backgroundColor: "#ffffff",
-    border: "2px solid #5ea500",
+    border: `2px solid ${THEME_COLOR}`,
     borderRadius: 2,
     boxSizing: "border-box",
   };
@@ -47,27 +49,24 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
   // 旋转控制点样式
   const rotateHandleStyle: React.CSSProperties = {
     ...handleStyle,
-    width: 14,
-    height: 14,
-    borderRadius: "50%",
-    backgroundColor: "#5ea500",
-    border: "2px solid white",
-    boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.2)",
-    cursor: "grab",
-    transition: "all 0.1s ease",
-    transform: `translate(-${handleOffset}px, -${handleOffset}px)`,
-  };
+    width: ROTATE_HANDLE_SIZE,
+    height: ROTATE_HANDLE_SIZE,
+  borderRadius: "50%",
+  backgroundColor: THEME_COLOR,
+  border: "2px solid white",
+  boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.2)",
+  cursor: "grab",
+  transition: "all 0.1s ease",
+};
 
   // 旋转控制线样式
   const rotateLineStyle: React.CSSProperties = {
     position: "absolute",
     width: "2px",
-    backgroundColor: "#5ea500",
-    left: "50%",
-    top: `-${rotateControlDistance}px`,
-    height: `${rotateControlDistance}px`,
-    transform: "translateX(-1px)",
-    boxShadow: "0 0 0 1px rgba(0, 0, 0, 0.1)",
+    backgroundColor: THEME_COLOR,
+    left: `calc(50% - 1px)`,
+    top: `-${ROTATE_DISTANCE}px`,
+    height: `${ROTATE_DISTANCE}px`,
   };
   
   // 鼠标悬停时的旋转控制点样式
@@ -133,17 +132,14 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
       onPointerDown={handlePointerDown}
     >
       {/* 旋转控制线 */}
-      <div
-        style={rotateLineStyle}
-        onPointerDown={handlePointerDown}
-      />
-      
+      <div style={rotateLineStyle} />
+
       {/* 旋转控制点 */}
       <div
         style={{
           ...rotateHandleStyle,
-          left: "50%",
-          top: `-${rotateControlDistance}px`,
+          left: `calc(50% - ${ROTATE_HANDLE_SIZE / 2}px)`,
+          top: `-${ROTATE_DISTANCE + ROTATE_HANDLE_SIZE}px`,
         }}
         onPointerDown={handleRotatePointerDown}
         onMouseEnter={(e) => {

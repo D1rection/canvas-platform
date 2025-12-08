@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { type ViewportState, type TextElement as TextElementModel } from "../../schema/model";
 
 interface TextElementProps {
@@ -8,6 +8,7 @@ interface TextElementProps {
   onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
   // 新增 props
   onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void; 
+  onMeasuredHeight?: (id: string, height: number) => void;
 }
 
 export const TextElement: React.FC<TextElementProps> = ({ 
@@ -15,17 +16,42 @@ export const TextElement: React.FC<TextElementProps> = ({
   viewport, 
   scale,
   onPointerDown, // 确保接收这个 prop
-  onDoubleClick 
+  onDoubleClick,
+  onMeasuredHeight,
 }) => {
   if (!element.visible) return null;
 
   const { spans, align, lineHeight, transform } = element;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const screenX = (transform.x - viewport.x) * scale;
   const screenY = (transform.y - viewport.y) * scale;
+  const width = element.size.width * scale;
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const measuredHeight = rect.height / scale;
+    if (Number.isFinite(measuredHeight)) {
+      const delta = Math.abs(measuredHeight - element.size.height);
+      if (delta > 0.5) {
+        onMeasuredHeight?.(element.id, measuredHeight);
+      }
+    }
+  }, [
+    element.id,
+    element.size.height,
+    element.size.width,
+    element.spans,
+    align,
+    lineHeight,
+    scale,
+    onMeasuredHeight,
+  ]);
 
   return (
     <div
+      ref={containerRef}
       data-id={element.id} // 添加data-id属性，以便DragTool能找到DOM元素
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick} // 绑定双击事件
@@ -33,6 +59,8 @@ export const TextElement: React.FC<TextElementProps> = ({
         position: "absolute",
         left: screenX,
         top: screenY,
+        width,
+        height: "auto",
         lineHeight: lineHeight, // 注意：TextEditor 使用的是 fontSize * scale，这里是否需要统一单位？
         // 修正：通常 line-height 如果是无单位数字（如 1.5），会继承 fontSize。
         // 但为了渲染一致性，建议显式计算或者确保 CSS 继承关系正确。

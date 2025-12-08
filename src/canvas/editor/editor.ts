@@ -651,6 +651,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       spans, // 文本片段
       align: _payload.align ?? "left", // 默认左对齐
       lineHeight: _payload.lineHeight ?? 1.5, // 默认行高
+      size: _payload.size ?? { width: 240, height: 120  },
       transform: {
         x: _payload.x ?? 0, // 默认放在 (0, 0) 位置
         y: _payload.y ?? 0,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CanvasRuntimeState,
   ID,
@@ -163,6 +163,57 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
   };
 
+  const handleSelectionBoxDoubleClick = (
+    id: ID | undefined,
+    e: React.MouseEvent<Element>
+  ) => {
+    if (!id) return;
+    handleElementDoubleClick(id, e);
+  };
+
+  const handleSelectionBoxPointerDownInternal = useCallback(
+    (e: React.PointerEvent<Element>) => {
+      try {
+        setIsEditing(true);
+        if (onSelectionBoxPointerDown) {
+          onSelectionBoxPointerDown(selection.selectedIds || [], e);
+        } else {
+          e.stopPropagation();
+        }
+        const handleGlobalPointerUp = () => {
+          setIsEditing(false);
+          try {
+            globalThis.document.removeEventListener(
+              "pointerup",
+              handleGlobalPointerUp
+            );
+          } catch (removeEventError) {
+            console.error(
+              "Error removing pointerup event listener:",
+              removeEventError
+            );
+          }
+        };
+        try {
+          globalThis.document.addEventListener(
+            "pointerup",
+            handleGlobalPointerUp
+          );
+        } catch (addEventError) {
+          console.error(
+            "Error adding pointerup event listener:",
+            addEventError
+          );
+          setIsEditing(false);
+        }
+      } catch (error) {
+        console.error("Error handling selection box pointer down:", error);
+        setIsEditing(false);
+      }
+    },
+    [onSelectionBoxPointerDown, selection.selectedIds]
+  );
+
   // 提交文本更改
   const handleTextCommit = (id: string, newText: string) => {
     const el = document.elements[id];
@@ -258,6 +309,22 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       console.error(`Error updating element ${id}:`, error);
     }
   };
+
+  const handleTextMeasuredHeight = React.useCallback(
+    (id: string, height: number) => {
+      if (editingElementId === id) return;
+      const element = document.elements?.[id];
+      if (!element || element.type !== "text" || !element.size) return;
+      if (Math.abs((element.size.height ?? 0) - height) < 0.5) return;
+      handleUpdateElement(id, {
+        size: {
+          ...element.size,
+          height,
+        },
+      });
+    },
+    [document.elements, handleUpdateElement, editingElementId]
+  );
 
   const handleShapePointerDown = React.useCallback(
     (id: string, e: React.PointerEvent<HTMLDivElement>) => {
@@ -358,6 +425,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
               key={el.id}
               {...commonProps}
               onDoubleClick={(e) => handleElementDoubleClick(el.id, e)}
+              onMeasuredHeight={handleTextMeasuredHeight}
             />
           );
         }
@@ -375,6 +443,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       selection.selectedIds,
       handleShapePointerDown,
       editingElementId,
+      handleTextMeasuredHeight,
     ]
   );
 
@@ -654,62 +723,18 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
       {/* 覆盖层 */}
       <div className={styles.overlayLayer} ref={overlayLayerRef}>
-        {/* 选择覆盖层 */}
-        <SelectionOverlay
-          selectedIds={selection.selectedIds || []}
-          elements={document.elements || {}}
-          viewport={viewport}
-          onRotateHandlePointerDown={handleRotateHandlePointerDown}
-          onScaleHandlePointerDown={handleScaleHandlePointerDown}
-          onSelectionBoxPointerDown={(e: React.PointerEvent<Element>) => {
-            try {
-              // 设置编辑状态为true，表示开始拖拽操作
-              setIsEditing(true);
-
-              // 调用父组件的选中框拖拽处理
-              if (onSelectionBoxPointerDown) {
-                onSelectionBoxPointerDown(selection.selectedIds || [], e);
-              } else {
-                e.stopPropagation();
-              }
-
-              // 监听全局pointerup事件以检测拖拽结束
-              const handleGlobalPointerUp = () => {
-                setIsEditing(false);
-                try {
-                  globalThis.document.removeEventListener(
-                    "pointerup",
-                    handleGlobalPointerUp
-                  );
-                } catch (removeEventError) {
-                  console.error(
-                    "Error removing pointerup event listener:",
-                    removeEventError
-                  );
-                }
-              };
-
-              try {
-                globalThis.document.addEventListener(
-                  "pointerup",
-                  handleGlobalPointerUp
-                );
-              } catch (addEventError) {
-                console.error(
-                  "Error adding pointerup event listener:",
-                  addEventError
-                );
-                setIsEditing(false);
-              }
-            } catch (error) {
-              console.error(
-                "Error handling selection box pointer down:",
-                error
-              );
-              setIsEditing(false);
-            }
-          }}
-        />
+        {/* 选择覆盖层（编辑态隐藏） */}
+        {!editingElementId && (
+          <SelectionOverlay
+            selectedIds={selection.selectedIds || []}
+            elements={document.elements || {}}
+            viewport={viewport}
+            onRotateHandlePointerDown={handleRotateHandlePointerDown}
+            onScaleHandlePointerDown={handleScaleHandlePointerDown}
+            onSelectionBoxDoubleClick={handleSelectionBoxDoubleClick}
+            onSelectionBoxPointerDown={handleSelectionBoxPointerDownInternal}
+          />
+        )}
 
         {/* 渲染工具栏时确保有有效的元素 */}
         {selection.selectedIds?.length > 0 &&

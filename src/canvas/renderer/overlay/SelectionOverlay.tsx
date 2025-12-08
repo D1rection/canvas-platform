@@ -1,6 +1,7 @@
 import React from "react";
 import type { CanvasElement, ID, Transform, Size, Point, ViewportState } from "../../schema/model";
 import { SelectionBox } from "./SelectionBox";
+import { TextSelectionBox } from "./TextSelectionBox";
 import { MultiSelectionBox } from "./MultiSelectionBox";
 import type { ScaleDirection } from "../../tools/ScaleTool";
 
@@ -11,6 +12,7 @@ interface SelectionOverlayProps {
   onRotateHandlePointerDown?: (id: ID | undefined, e: React.PointerEvent<Element>) => void;
   onScaleHandlePointerDown?: (id: ID | undefined, direction: ScaleDirection, e: React.PointerEvent<Element>) => void;
   onSelectionBoxPointerDown?: (e: React.PointerEvent<Element>) => void; // 多选框拖拽回调
+  onSelectionBoxDoubleClick?: (id: ID | undefined, e: React.MouseEvent<Element>) => void;
 }
 
 /**
@@ -112,6 +114,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   onRotateHandlePointerDown,
   onScaleHandlePointerDown,
   onSelectionBoxPointerDown,
+  onSelectionBoxDoubleClick,
 }) => {
   const scale = viewport.scale;
 
@@ -130,6 +133,23 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     const top = (transform.y - viewport.y) * scale;
     const width = size.width * scale;
     const height = size.height * scale;
+
+    if (element.type === "text") {
+      return (
+        <TextSelectionBox
+          left={left}
+          top={top}
+          width={width}
+          height={height}
+          rotation={transform.rotation}
+          id={element.id}
+          onRotateHandlePointerDown={onRotateHandlePointerDown}
+          onScaleHandlePointerDown={onScaleHandlePointerDown}
+          onSelectionBoxPointerDown={onSelectionBoxPointerDown}
+          onSelectionBoxDoubleClick={onSelectionBoxDoubleClick}
+        />
+      );
+    }
 
     return (
       <SelectionBox
