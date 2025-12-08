@@ -663,6 +663,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (!onWheel) return;
+    // 阻止触控板在边缘触发浏览器前进/后退手势
+    e.preventDefault();
     const point = screenToWorld(e);
     onWheel(point, e);
   };
