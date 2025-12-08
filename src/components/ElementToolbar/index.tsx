@@ -66,10 +66,12 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
   );
 
   // 检查是否选中了单个图片元素
-  const isSingleImageElement = selectedElements.length === 1 && selectedElements[0].type === "image";
-  
+  const isSingleImageElement =
+    selectedElements.length === 1 && selectedElements[0].type === "image";
+
   // 检查是否选中了单个文本元素
-  const isSingleTextElement = selectedElements.length === 1 && selectedElements[0].type === "text";
+  const isSingleTextElement =
+    selectedElements.length === 1 && selectedElements[0].type === "text";
 
   // 注意：这个函数暂时未使用，但保留以备将来需要
   // const getCommonPropertyValue = <T extends keyof CanvasElement>(property: T): CanvasElement[T] | null => {
@@ -98,7 +100,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const viewportScale = viewport.scale || 1;
     const viewportX = viewport.x || 0;
     const viewportY = viewport.y || 0;
-    
+
     // 元素的原始坐标和变换
     const elementX = element.transform.x;
     const elementY = element.transform.y;
@@ -131,7 +133,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     // 应用元素自身的缩放比例
     width *= elementScaleX;
     height *= elementScaleY;
-    
+
     // 将坐标转换为屏幕坐标系（考虑视口平移与缩放）
     const screenX = (elementX - viewportX) * viewportScale;
     const screenY = (elementY - viewportY) * viewportScale;
@@ -139,11 +141,11 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const screenHeight = height * viewportScale;
 
     // 返回在屏幕坐标系中的元素边界
-    return { 
-      x: screenX, 
-      y: screenY, 
-      width: screenWidth, 
-      height: screenHeight 
+    return {
+      x: screenX,
+      y: screenY,
+      width: screenWidth,
+      height: screenHeight,
     };
   };
 
@@ -160,19 +162,21 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const margin = 10; // 与浏览器窗口边缘的安全边距
     const elementGap = 40; // 与所选元素包围框之间的最小间距
     const avoidPadding = 10; // 额外避让（例如选框/控制点、阴影等）
-    const containerWidth = typeof window !== "undefined" ? window.innerWidth : 1000;
-    const containerHeight = typeof window !== "undefined" ? window.innerHeight : 600;
+    const containerWidth =
+      typeof window !== "undefined" ? window.innerWidth : 1000;
+    const containerHeight =
+      typeof window !== "undefined" ? window.innerHeight : 600;
 
     // 获取所有选中元素的边界
     const allBounds = selectedElements.map(getElementBounds);
-    
+
     // 计算所有选中元素的联合边界框（在屏幕坐标系）
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
 
-    allBounds.forEach(bounds => {
+    allBounds.forEach((bounds) => {
       minX = Math.min(minX, bounds.x);
       minY = Math.min(minY, bounds.y);
       maxX = Math.max(maxX, bounds.x + bounds.width);
@@ -183,23 +187,34 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const boundsCenterX = (minX + maxX) / 2;
     const boundsTop = minY;
     const boundsBottom = maxY;
-    
+
     // 边界检查函数：确保目标位置不会超出视口
-    const clampX = (x: number) => Math.max(margin, Math.min(x, containerWidth - toolbarWidth - margin));
-    const clampY = (y: number) => Math.max(margin, Math.min(y, containerHeight - toolbarHeight - margin));
+    const clampX = (x: number) =>
+      Math.max(margin, Math.min(x, containerWidth - toolbarWidth - margin));
+    const clampY = (y: number) =>
+      Math.max(margin, Math.min(y, containerHeight - toolbarHeight - margin));
 
     // 矩形重叠检测：用于兜底时确保不遮挡
-    const overlaps = (r1: {left:number;top:number;right:number;bottom:number}, r2: {left:number;top:number;right:number;bottom:number}) => {
-      return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
+    const overlaps = (
+      r1: { left: number; top: number; right: number; bottom: number },
+      r2: { left: number; top: number; right: number; bottom: number }
+    ) => {
+      return !(
+        r1.right < r2.left ||
+        r1.left > r2.right ||
+        r1.bottom < r2.top ||
+        r1.top > r2.bottom
+      );
     };
-    
+
     // 仅在元素上方或下方定位（满足产品需求：优先上方，否则下方；且不越界）
     const desiredLeft = boundsCenterX - toolbarWidth / 2;
     const gapY = elementGap + avoidPadding; // 上下避让总量
     const aboveTop = boundsTop - toolbarHeight - gapY; // 上方，留出与元素的安全间距
     const belowTop = boundsBottom + gapY; // 下方，留出与元素的安全间距
 
-    const withinY = (y: number) => y >= margin && y + toolbarHeight <= containerHeight - margin;
+    const withinY = (y: number) =>
+      y >= margin && y + toolbarHeight <= containerHeight - margin;
 
     // 1) 优先上方（不越界、不遮挡）
     if (withinY(aboveTop)) {
@@ -211,12 +226,24 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     }
 
     // 3) 左/右兜底（尽量不遮挡选中元素）
-    const leftTop = clampY(boundsTop + (boundsBottom - boundsTop) / 2 - toolbarHeight / 2);
+    const leftTop = clampY(
+      boundsTop + (boundsBottom - boundsTop) / 2 - toolbarHeight / 2
+    );
     const tryLeft = () => {
       const left = minX - toolbarWidth - elementGap;
       if (left >= margin) {
-        const rect = { left, top: leftTop, right: left + toolbarWidth, bottom: leftTop + toolbarHeight };
-        const target = { left: minX - avoidPadding, top: boundsTop - avoidPadding, right: maxX + avoidPadding, bottom: boundsBottom + avoidPadding };
+        const rect = {
+          left,
+          top: leftTop,
+          right: left + toolbarWidth,
+          bottom: leftTop + toolbarHeight,
+        };
+        const target = {
+          left: minX - avoidPadding,
+          top: boundsTop - avoidPadding,
+          right: maxX + avoidPadding,
+          bottom: boundsBottom + avoidPadding,
+        };
         if (!overlaps(rect, target)) return { top: leftTop, left };
       }
       return null;
@@ -224,8 +251,18 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const tryRight = () => {
       const left = maxX + elementGap;
       if (left + toolbarWidth <= containerWidth - margin) {
-        const rect = { left, top: leftTop, right: left + toolbarWidth, bottom: leftTop + toolbarHeight };
-        const target = { left: minX - avoidPadding, top: boundsTop - avoidPadding, right: maxX + avoidPadding, bottom: boundsBottom + avoidPadding };
+        const rect = {
+          left,
+          top: leftTop,
+          right: left + toolbarWidth,
+          bottom: leftTop + toolbarHeight,
+        };
+        const target = {
+          left: minX - avoidPadding,
+          top: boundsTop - avoidPadding,
+          right: maxX + avoidPadding,
+          bottom: boundsBottom + avoidPadding,
+        };
         if (!overlaps(rect, target)) return { top: leftTop, left };
       }
       return null;
@@ -238,11 +275,34 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     // 4) 最后一招：选择重叠面积更小的一侧（仍保持在窗口内）
     const clampAbove = clampY(aboveTop);
     const clampBelow = clampY(belowTop);
-    const rectAbove = { left: clampX(desiredLeft), top: clampAbove, right: clampX(desiredLeft) + toolbarWidth, bottom: clampAbove + toolbarHeight };
-    const rectBelow = { left: clampX(desiredLeft), top: clampBelow, right: clampX(desiredLeft) + toolbarWidth, bottom: clampBelow + toolbarHeight };
-    const target = { left: minX - avoidPadding, top: boundsTop - avoidPadding, right: maxX + avoidPadding, bottom: boundsBottom + avoidPadding };
+    const rectAbove = {
+      left: clampX(desiredLeft),
+      top: clampAbove,
+      right: clampX(desiredLeft) + toolbarWidth,
+      bottom: clampAbove + toolbarHeight,
+    };
+    const rectBelow = {
+      left: clampX(desiredLeft),
+      top: clampBelow,
+      right: clampX(desiredLeft) + toolbarWidth,
+      bottom: clampBelow + toolbarHeight,
+    };
+    const target = {
+      left: minX - avoidPadding,
+      top: boundsTop - avoidPadding,
+      right: maxX + avoidPadding,
+      bottom: boundsBottom + avoidPadding,
+    };
 
-    const area = (r: any) => Math.max(0, Math.min(r.right, target.right) - Math.max(r.left, target.left)) * Math.max(0, Math.min(r.bottom, target.bottom) - Math.max(r.top, target.top));
+    const area = (r: any) =>
+      Math.max(
+        0,
+        Math.min(r.right, target.right) - Math.max(r.left, target.left)
+      ) *
+      Math.max(
+        0,
+        Math.min(r.bottom, target.bottom) - Math.max(r.top, target.top)
+      );
     const aboveOverlap = area(rectAbove);
     const belowOverlap = area(rectBelow);
     if (aboveOverlap <= belowOverlap) {
@@ -253,7 +313,10 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
 
   // 通过测量 DOM，使用真实尺寸定位，避免因估算值导致的遮挡
   const toolbarRef = React.useRef<HTMLDivElement | null>(null);
-  const [measuredSize, setMeasuredSize] = React.useState<{ width: number; height: number }>({ width: 300, height: 80 });
+  const [measuredSize, setMeasuredSize] = React.useState<{
+    width: number;
+    height: number;
+  }>({ width: 300, height: 80 });
 
   React.useLayoutEffect(() => {
     if (!toolbarRef.current) return;
@@ -261,7 +324,11 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       const rect = toolbarRef.current.getBoundingClientRect();
       const w = Math.round(rect.width);
       const h = Math.round(rect.height);
-      if (w > 0 && h > 0 && (w !== measuredSize.width || h !== measuredSize.height)) {
+      if (
+        w > 0 &&
+        h > 0 &&
+        (w !== measuredSize.width || h !== measuredSize.height)
+      ) {
         setMeasuredSize({ width: w, height: h });
       }
     } catch (e) {
@@ -286,9 +353,9 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
   const toolbarStyle: React.CSSProperties = {
     top: `${position.top}px`,
     left: `${position.left}px`,
-    opacity: isEditing ? 0 : 1,
-    pointerEvents: isEditing ? 'none' : 'auto',
-    transition: 'opacity 0.2s ease-in-out', // 添加过渡动画
+    opacity: isEditing && !isSingleTextElement ? 0 : 1,
+    pointerEvents: isEditing && !isSingleTextElement ? "none" : "auto",
+    transition: "opacity 0.2s ease-in-out",
   };
 
   // 对于图片元素，显示专门的图片编辑器
@@ -303,7 +370,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       />
     );
   }
-  
+
   // 对于文本元素，显示专门的文本编辑器
   if (isSingleTextElement) {
     const textElement = selectedElements[0] as TextElement;

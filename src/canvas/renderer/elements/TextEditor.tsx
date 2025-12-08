@@ -7,6 +7,7 @@ interface TextEditorProps {
   scale: number;
   onCommit: (newText: string) => void;
   onCancel?: () => void;
+  isEditing?: boolean;
 }
 
 export const TextEditor: React.FC<TextEditorProps> = ({
@@ -17,7 +18,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   onCancel,
 }) => {
   const { spans, align, lineHeight, transform } = element;
-  
+
   // MVP 简化：提取所有 span 的文本合并编辑
   // 注意：这会丢失富文本的多样式信息，Figma 也是通过复杂的 Model 处理的
   // 此时我们假设编辑后统一应用第一个 span 的样式
@@ -39,7 +40,8 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   useLayoutEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
     }
   }, [value, scale]);
 
@@ -54,8 +56,8 @@ export const TextEditor: React.FC<TextEditorProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // 阻止事件冒泡，防止触发画布的删除/撤销快捷键
-    e.stopPropagation(); 
-    
+    e.stopPropagation();
+
     // Command + Enter 或 Ctrl + Enter 提交
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       textareaRef.current?.blur();

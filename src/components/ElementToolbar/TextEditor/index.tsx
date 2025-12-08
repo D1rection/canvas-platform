@@ -40,24 +40,6 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
     handleToggleUnderline,
   } = useTextFormat({ element: textElement, onUpdateElement });
 
-  // 测量工具栏尺寸
-  useEffect(() => {
-    if (!toolbarRef.current) return;
-
-    const updateSize = () => {
-      const rect = toolbarRef.current!.getBoundingClientRect();
-      setMeasuredSize({ width: rect.width, height: rect.height });
-    };
-
-    // 初始测量
-    updateSize();
-
-    // 监听窗口大小变化
-    window.addEventListener("resize", updateSize);
-
-    return () => window.removeEventListener("resize", updateSize);
-  }, [currentStyle.fontFamily, currentStyle.fontSize]);
-
   // 获取元素在屏幕上的边界
   const getElementBounds = () => {
     if (!textElement.transform) {
@@ -99,9 +81,11 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
   };
 
   // 计算工具栏位置，与其他工具栏保持一致的定位逻辑
-  const getToolbarPosition = () => {
+  const getToolbarPosition = (tw: number, th: number) => {
     const bounds = getElementBounds();
-    const { width: toolbarWidth, height: toolbarHeight } = measuredSize;
+
+    const toolbarWidth = Math.max(1, Math.floor(tw));
+    const toolbarHeight = Math.max(1, Math.floor(th));
 
     const margin = 10;
     const containerWidth =
@@ -238,7 +222,40 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
     return { top: clampBelow, left: clampX(desiredLeft) };
   };
 
-  const position = getToolbarPosition();
+  const position = getToolbarPosition(measuredSize.width, measuredSize.height);
+
+  // 测量工具栏尺寸
+  useEffect(() => {
+    if (!toolbarRef.current) return;
+
+    const updateSize = () => {
+      const rect = toolbarRef.current!.getBoundingClientRect();
+      setMeasuredSize({
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      });
+    };
+
+    // 初始测量
+    updateSize();
+
+    // 监听窗口大小变化
+    window.addEventListener("resize", updateSize);
+
+    return () => window.removeEventListener("resize", updateSize);
+  }, [currentStyle.fontFamily, currentStyle.fontSize]);
+
+  // 在元素位置或视口变化时更新工具栏位置
+  useEffect(() => {
+    if (!toolbarRef.current) return;
+
+    // 当元素位置或视口变化时，重新测量工具栏尺寸以触发位置更新
+    const rect = toolbarRef.current.getBoundingClientRect();
+    setMeasuredSize({
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    });
+  }, [textElement.transform, viewport, isEditing]);
 
   // 阻止事件冒泡
   const handleToolbarClick = (e: React.MouseEvent) => {

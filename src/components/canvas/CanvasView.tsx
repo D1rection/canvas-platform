@@ -23,7 +23,6 @@ import { MarqueeSelectionBox } from "../../canvas/renderer/overlay/MarqueeSelect
 import { RotateTool } from "../../canvas/tools/RotateTool";
 import { ScaleTool, ScaleDirection } from "../../canvas/tools/ScaleTool";
 
-
 interface CanvasViewProps {
   state: CanvasRuntimeState;
   cursor?: string;
@@ -60,7 +59,7 @@ interface CanvasViewProps {
     id: ID | undefined,
     e: React.PointerEvent<Element>
   ) => void;
-  
+
   /** 缩放控制点鼠标点击 */
   onScaleHandlePointerDown?: (
     id: ID | undefined,
@@ -73,9 +72,13 @@ interface CanvasViewProps {
     e: React.PointerEvent<Element>
   ) => void;
   /** 注册元素层 DOM 引用回调 */
-  onRegisterElementsLayerRef?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+  onRegisterElementsLayerRef?: (
+    ref: React.RefObject<HTMLDivElement | null>
+  ) => void;
   /** 注册覆盖层 DOM 引用回调 */
-  onRegisterOverlayLayerRef?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+  onRegisterOverlayLayerRef?: (
+    ref: React.RefObject<HTMLDivElement | null>
+  ) => void;
 }
 
 /**
@@ -104,16 +107,15 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
-  
 
-  console.log("Document elements before render:", document.elements);  // 输出文档元素
+  console.log("Document elements before render:", document.elements); // 输出文档元素
 
   // 方案D：增强的状态同步监控
   useEffect(() => {
     try {
       // 验证document和selection对象的有效性
       if (!document || !selection) {
-        console.error('Invalid canvas state: Missing document or selection');
+        console.error("Invalid canvas state: Missing document or selection");
         return;
       }
 
@@ -128,7 +130,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       if (Array.isArray(selection.selectedIds) && document.elements) {
         selection.selectedIds.forEach((selectedId) => {
           const elementExists = !!document.elements[selectedId];
-          
+
           if (!elementExists) {
             console.error(
               `CRITICAL: Selected element ${selectedId} not found in document!`
@@ -138,7 +140,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         });
       }
     } catch (error) {
-      console.error('Error in state sync monitor:', error);
+      console.error("Error in state sync monitor:", error);
     }
   }, [document, selection]);
 
@@ -154,25 +156,27 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const handleElementDoubleClick = (id: string, e: React.MouseEvent) => {
     // 只有文本类型才允许进入编辑模式
     const el = document.elements[id];
-    if (el && el.type === 'text') {
+    if (el && el.type === "text") {
       setEditingElementId(id);
       // 双击时可能需要阻止默认选中文本的行为
-      e.preventDefault(); 
+      e.preventDefault();
     }
   };
 
   // 提交文本更改
   const handleTextCommit = (id: string, newText: string) => {
     const el = document.elements[id];
-    if (!el || el.type !== 'text') return;
+    if (!el || el.type !== "text") return;
 
     // 构造新的 spans（这里简化逻辑：全量替换为一个 span）
     // 实际生产中可能需要保留原有的多段样式结构
     const currentStyle = el.spans[0]?.style;
-    const newSpans = [{
-      text: newText,
-      style: currentStyle
-    }];
+    const newSpans = [
+      {
+        text: newText,
+        style: currentStyle,
+      },
+    ];
 
     handleUpdateElement(id, { spans: newSpans });
     setEditingElementId(null);
@@ -191,10 +195,15 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   useEffect(() => {
     documentRef.current = document;
     viewportRef.current = viewport;
-    
+
     // 初始化或更新旋转工具
     if (!rotateTool.current) {
-      rotateTool.current = new RotateTool(onUpdateElement, documentRef, viewportRef, { root: styles.root });
+      rotateTool.current = new RotateTool(
+        onUpdateElement,
+        documentRef,
+        viewportRef,
+        { root: styles.root }
+      );
     } else {
       rotateTool.current.updateDependencies(
         onUpdateElement,
@@ -203,10 +212,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         { root: styles.root }
       );
     }
-    
+
     // 初始化或更新缩放工具
     if (!scaleTool.current) {
-      scaleTool.current = new ScaleTool(onUpdateElement, documentRef, viewportRef);
+      scaleTool.current = new ScaleTool(
+        onUpdateElement,
+        documentRef,
+        viewportRef
+      );
     } else {
       scaleTool.current.updateDependencies(
         onUpdateElement,
@@ -215,14 +228,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       );
     }
   }, [document, viewport, onUpdateElement, styles.root]);
-  
-  
+
   // 旋转工具已经在上面的useEffect中初始化和更新
 
   const handleUpdateElement = (id: string, updates: Partial<CanvasElement>) => {
     // 安全检查：确保id有效且onUpdateElement是函数
-    if (!id || typeof id !== 'string') {
-      console.error('Invalid element ID for update:', id);
+    if (!id || typeof id !== "string") {
+      console.error("Invalid element ID for update:", id);
       return;
     }
 
@@ -233,8 +245,8 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
 
     // 验证updates是否为对象
-    if (!updates || typeof updates !== 'object') {
-      console.error('Invalid updates object:', updates);
+    if (!updates || typeof updates !== "object") {
+      console.error("Invalid updates object:", updates);
       return;
     }
 
@@ -259,11 +271,9 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     [isDragging, cursor, onElementPointerDown]
   );
 
-
   const renderElement = React.useCallback(
     // eslint-disable-next-line react-hooks/preserve-manual-memoization
     (el: any) => {
-
       // 优先检查：是否处于编辑模式？
       if (el.type === "text" && editingElementId === el.id) {
         return (
@@ -274,6 +284,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             scale={scale}
             onCommit={(text) => handleTextCommit(el.id, text)}
             onCancel={() => setEditingElementId(null)}
+            isEditing={true}
           />
         );
       }
@@ -288,8 +299,6 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         isHovered: selection.hoveredId === el.id,
         isSelected: selection.selectedIds.includes(el.id),
       };
-
-      
 
       if (el.type === "shape") {
         if (el.shape === "rect") {
@@ -372,32 +381,36 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const renderedElements = React.useMemo(() => {
     // 安全检查：确保rootElementIds是数组
     if (!Array.isArray(document.rootElementIds)) {
-      console.error('Invalid document structure: rootElementIds is not an array');
-      return [];
-    }
-    
-    // 安全检查：确保elements是对象
-    if (!document.elements || typeof document.elements !== 'object') {
-      console.error('Invalid document structure: elements is not an object');
+      console.error(
+        "Invalid document structure: rootElementIds is not an array"
+      );
       return [];
     }
 
-    return document.rootElementIds.map((id) => {
-      // 跳过无效的id
-      if (!id || typeof id !== 'string') {
-        console.warn('Invalid element ID:', id);
-        return null;
-      }
-      
-      const el = document.elements[id];
-      if (!el) {
-        console.warn(`Element with ID ${id} not found`);
-        return null;
-      }
-      
-      if (!el.visible) return null;
-      return renderElement(el);
-    }).filter(Boolean); // 过滤掉null值
+    // 安全检查：确保elements是对象
+    if (!document.elements || typeof document.elements !== "object") {
+      console.error("Invalid document structure: elements is not an object");
+      return [];
+    }
+
+    return document.rootElementIds
+      .map((id) => {
+        // 跳过无效的id
+        if (!id || typeof id !== "string") {
+          console.warn("Invalid element ID:", id);
+          return null;
+        }
+
+        const el = document.elements[id];
+        if (!el) {
+          console.warn(`Element with ID ${id} not found`);
+          return null;
+        }
+
+        if (!el.visible) return null;
+        return renderElement(el);
+      })
+      .filter(Boolean); // 过滤掉null值
   }, [document.rootElementIds, document.elements, renderElement]);
 
   const screenToWorld = (
@@ -407,31 +420,32 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       const rect = e.currentTarget.getBoundingClientRect();
       const screenX = e.clientX - rect.left;
       const screenY = e.clientY - rect.top;
-      
+
       // 安全检查：确保scale有效且非零
       const safeScale = scale && scale !== 0 ? scale : 1;
-      
+
       return {
         x: (viewport?.x || 0) + screenX / safeScale,
         y: (viewport?.y || 0) + screenY / safeScale,
       };
     } catch (error) {
-      console.error('Error converting screen to world coordinates:', error);
+      console.error("Error converting screen to world coordinates:", error);
       // 返回安全的默认值
       return { x: 0, y: 0 };
     }
   };
 
   // 检测是否为元素拖拽操作
-  const isElementDragOperation = (e: React.PointerEvent<HTMLDivElement>): boolean => {
+  const isElementDragOperation = (
+    e: React.PointerEvent<HTMLDivElement>
+  ): boolean => {
     const target = e.target as HTMLElement;
     // 检查是否点击了选中元素或选择框
     return Boolean(
       selection.selectedIds.length > 0 &&
-      !target.closest(`.${styles.toolbarWrapper}`) &&
-      !target.closest('[data-toolbar-element="true"]') &&
-      (target.closest('[class*="selection"]') || 
-       target.closest('[data-id]')) // 使用data-id代替data-element-id，与TextElement组件保持一致
+        !target.closest(`.${styles.toolbarWrapper}`) &&
+        !target.closest('[data-toolbar-element="true"]') &&
+        (target.closest('[class*="selection"]') || target.closest("[data-id]")) // 使用data-id代替data-element-id，与TextElement组件保持一致
     );
   };
 
@@ -482,15 +496,21 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   };
 
   // 处理旋转控制点的指针按下事件
-  const handleRotateHandlePointerDown = (id: ID | undefined, e: React.PointerEvent<Element>) => {
+  const handleRotateHandlePointerDown = (
+    id: ID | undefined,
+    e: React.PointerEvent<Element>
+  ) => {
     // 设置编辑状态为true
     setIsEditing(true);
-    
+
     // 使用旋转工具处理旋转控制点的点击事件
     if (rotateTool.current) {
       // 进行类型断言以匹配rotateTool的期望类型
-      rotateTool.current.handleRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
-      
+      rotateTool.current.handleRotateHandlePointerDown(
+        id,
+        e as React.PointerEvent<HTMLElement>
+      );
+
       // 监听旋转结束事件
       const originalOnRotateEnd = rotateTool.current.onRotateEnd;
       rotateTool.current.onRotateEnd = () => {
@@ -498,23 +518,31 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         setIsEditing(false);
       };
     }
-    
+
     // 通知外部处理旋转开始
     if (onRotateHandlePointerDown) {
       onRotateHandlePointerDown(id, e as React.PointerEvent<HTMLElement>);
     }
   };
-  
+
   // 处理缩放控制点的指针按下事件
-  const handleScaleHandlePointerDown = (id: ID | undefined, direction: number, e: React.PointerEvent<Element>) => {
+  const handleScaleHandlePointerDown = (
+    id: ID | undefined,
+    direction: number,
+    e: React.PointerEvent<Element>
+  ) => {
     // 设置编辑状态为true
     setIsEditing(true);
-    
+
     // 使用缩放工具处理缩放控制点的点击事件
     if (scaleTool.current) {
       // 进行类型断言以匹配scaleTool的期望类型
-      scaleTool.current.handleScaleHandlePointerDown(id, direction as ScaleDirection, e as React.PointerEvent<HTMLElement>);
-      
+      scaleTool.current.handleScaleHandlePointerDown(
+        id,
+        direction as ScaleDirection,
+        e as React.PointerEvent<HTMLElement>
+      );
+
       // 监听缩放结束事件
       const originalOnScaleEnd = scaleTool.current.onScaleEnd;
       scaleTool.current.onScaleEnd = () => {
@@ -522,10 +550,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         setIsEditing(false);
       };
     }
-    
+
     // 通知外部处理缩放开始
-    if (typeof onScaleHandlePointerDown === 'function') {
-      onScaleHandlePointerDown(id, direction, e as React.PointerEvent<HTMLElement>);
+    if (typeof onScaleHandlePointerDown === "function") {
+      onScaleHandlePointerDown(
+        id,
+        direction,
+        e as React.PointerEvent<HTMLElement>
+      );
     }
   };
 
@@ -550,7 +582,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
     if (!onCanvasPointerUp) return;
     if (isDragging) setIsDragging(false);
-    
+
     // 重置编辑状态
     if (isEditing) {
       setIsEditing(false);
@@ -633,62 +665,77 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             try {
               // 设置编辑状态为true，表示开始拖拽操作
               setIsEditing(true);
-              
+
               // 调用父组件的选中框拖拽处理
               if (onSelectionBoxPointerDown) {
                 onSelectionBoxPointerDown(selection.selectedIds || [], e);
               } else {
                 e.stopPropagation();
               }
-              
+
               // 监听全局pointerup事件以检测拖拽结束
               const handleGlobalPointerUp = () => {
                 setIsEditing(false);
                 try {
-                  globalThis.document.removeEventListener('pointerup', handleGlobalPointerUp);
+                  globalThis.document.removeEventListener(
+                    "pointerup",
+                    handleGlobalPointerUp
+                  );
                 } catch (removeEventError) {
-                  console.error('Error removing pointerup event listener:', removeEventError);
+                  console.error(
+                    "Error removing pointerup event listener:",
+                    removeEventError
+                  );
                 }
               };
-              
+
               try {
-                globalThis.document.addEventListener('pointerup', handleGlobalPointerUp);
+                globalThis.document.addEventListener(
+                  "pointerup",
+                  handleGlobalPointerUp
+                );
               } catch (addEventError) {
-                console.error('Error adding pointerup event listener:', addEventError);
+                console.error(
+                  "Error adding pointerup event listener:",
+                  addEventError
+                );
                 setIsEditing(false);
               }
             } catch (error) {
-              console.error('Error handling selection box pointer down:', error);
+              console.error(
+                "Error handling selection box pointer down:",
+                error
+              );
               setIsEditing(false);
             }
           }}
         />
 
         {/* 渲染工具栏时确保有有效的元素 */}
-        {selection.selectedIds?.length > 0 && 
-         document.elements && 
-         document.elements[selection.selectedIds[0]] && (
-          <ElementToolbar
-            element={document.elements[selection.selectedIds[0]]}
-            elements={selection.selectedIds
-              .map(id => document.elements[id])
-              .filter((el): el is CanvasElement => Boolean(el))}
-            onUpdateElement={handleUpdateElement}
-            isEditing={isEditing}
-            viewport={viewport}
-          />
-        )}
-        
+        {selection.selectedIds?.length > 0 &&
+          document.elements &&
+          document.elements[selection.selectedIds[0]] && (
+            <ElementToolbar
+              element={document.elements[selection.selectedIds[0]]}
+              elements={selection.selectedIds
+                .map((id) => document.elements[id])
+                .filter((el): el is CanvasElement => Boolean(el))}
+              onUpdateElement={handleUpdateElement}
+              isEditing={isEditing}
+              viewport={viewport}
+            />
+          )}
+
         {/* 渲染 marquee 选择框 */}
-        {state.marqueeSelection && 
-         state.marqueeSelection.startPoint && 
-         state.marqueeSelection.endPoint && (
-          <MarqueeSelectionBox
-            startPoint={state.marqueeSelection.startPoint}
-            endPoint={state.marqueeSelection.endPoint}
-            viewport={viewport}
-          />
-        )}
+        {state.marqueeSelection &&
+          state.marqueeSelection.startPoint &&
+          state.marqueeSelection.endPoint && (
+            <MarqueeSelectionBox
+              startPoint={state.marqueeSelection.startPoint}
+              endPoint={state.marqueeSelection.endPoint}
+              viewport={viewport}
+            />
+          )}
 
         {/* 后续可在此添加：HoverOverlay / DragPreview / AlignmentGuides 等 */}
       </div>
