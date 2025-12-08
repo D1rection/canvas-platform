@@ -371,6 +371,25 @@ export const selectTool: ToolHandler = {
       ctx.message?.success('已粘贴元素');
       return;
     }
+
+    // Delete / Backspace 删除当前选区
+    if (ev.key === "Delete" || ev.key === "Backspace") {
+      const target = ev.target as HTMLElement | null;
+      const isEditableElement =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+
+      if (!isEditableElement) {
+        const selectedCount = ctx.editor.getState().selection.selectedIds.length;
+        if (selectedCount > 0) {
+          ev.preventDefault();
+          ctx.editor.deleteSelection();
+          ctx.message?.success?.('已删除选中元素');
+        }
+      }
+    }
   },
 
   onContextMenu: (ctx, ev) => {
