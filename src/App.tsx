@@ -347,6 +347,23 @@ function App({ canvasContainer }: AppProps) {
     return () => window.removeEventListener('contextmenu', handleGlobalContextMenu);
   }, [toolHandler, toolContext]);
 
+  // 抵消回退
+  useEffect(() => {
+    // 先把当前页压入一次历史栈
+    history.pushState(null, '', document.URL);
+
+    const handlePopState = (_e: PopStateEvent) => {
+      // 再次压入，抵消后退
+      history.pushState(null, '', document.URL);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   return (
     <>
       {/* 恢复弹窗 */}
