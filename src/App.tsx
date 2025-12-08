@@ -258,13 +258,32 @@ function App({ canvasContainer }: AppProps) {
         }
       }
       
+      const lowerKey = e.key.toLowerCase();
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        const toolMap: Record<string, ToolType> = {
+          v: "select",
+          h: "pan",
+          r: "rect",
+          c: "circle",
+          a: "triangle",
+          t: "text",
+          i: "image",
+        };
+        const mappedTool = toolMap[lowerKey];
+        if (mappedTool && mappedTool !== currentTool) {
+          e.preventDefault();
+          setTool(mappedTool);
+          return;
+        }
+      }
+
       // 其他快捷键交给工具处理器
       toolHandler.onKeyDown?.(toolContext, e);
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [toolHandler, toolContext, editorService]);
+  }, [toolHandler, toolContext, editorService, currentTool]);
 
 
   // 全局右键菜单
