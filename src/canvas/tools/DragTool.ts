@@ -30,6 +30,8 @@ export class DragTool {
   private viewportRef: { current: { x: number; y: number; scale: number } } | undefined;
   private elementsLayerRef: { current: HTMLElement | null } | undefined;
   private overlayLayerRef: { current: HTMLElement | null } | undefined;
+  private static DRAG_START_EVENT = "canvas-element-drag-start";
+  private static DRAG_END_EVENT = "canvas-element-drag-end";
 
   /**
    * 初始化拖拽工具
@@ -68,6 +70,16 @@ export class DragTool {
     this.viewportRef = viewportRef;
     this.elementsLayerRef = elementsLayerRef;
     this.overlayLayerRef = overlayLayerRef;
+  }
+
+  private emitDragEvent(
+    type: typeof DragTool.DRAG_START_EVENT | typeof DragTool.DRAG_END_EVENT,
+    detail: { elementIds: ID[] }
+  ) {
+    const target: Window | undefined =
+      typeof window !== "undefined" ? window : undefined;
+    if (!target || typeof target.dispatchEvent !== "function") return;
+    target.dispatchEvent(new CustomEvent(type, { detail }));
   }
 
   /**
@@ -211,6 +223,7 @@ export class DragTool {
       }
       // 移动距离超过阈值，标记为已开始拖拽
       this.dragState.hasStartedDragging = true;
+      this.emitDragEvent(DragTool.DRAG_START_EVENT, { elementIds });
     }
 
     // 计算移动距离（世界坐标）
@@ -328,6 +341,10 @@ export class DragTool {
       this.dragState.selectionBoxElement.style.display = '';
     }
 
+    if (hasStartedDragging) {
+      this.emitDragEvent(DragTool.DRAG_END_EVENT, { elementIds });
+    }
+
     this.dragState = null;
   }
 
@@ -342,6 +359,11 @@ export class DragTool {
    * 取消当前拖拽
    */
   cancelDrag(): void {
+    if (this.dragState?.hasStartedDragging) {
+      this.emitDragEvent(DragTool.DRAG_END_EVENT, {
+        elementIds: this.dragState.elementIds,
+      });
+    }
     this.dragState = null;
   }
 }

@@ -707,6 +707,31 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     }
   }, [onRegisterOverlayLayerRef]);
 
+  useEffect(() => {
+    const win = typeof window !== "undefined" ? window : null;
+    if (!win) return;
+    const handleDragStart = () => setIsEditing(true);
+    const handleDragEnd = () => setIsEditing(false);
+    win.addEventListener(
+      "canvas-element-drag-start",
+      handleDragStart as EventListener
+    );
+    win.addEventListener(
+      "canvas-element-drag-end",
+      handleDragEnd as EventListener
+    );
+    return () => {
+      win.removeEventListener(
+        "canvas-element-drag-start",
+        handleDragStart as EventListener
+      );
+      win.removeEventListener(
+        "canvas-element-drag-end",
+        handleDragEnd as EventListener
+      );
+    };
+  }, [setIsEditing]);
+
   return (
     <div
       className={styles.root}
