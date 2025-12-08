@@ -235,6 +235,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const documentRef = useRef(document);
   const viewportRef = useRef(viewport);
   // 旋转工具实例
@@ -661,13 +662,33 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     onCanvasPointerUp(point, e);
   };
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!onWheel) return;
-    // 阻止触控板在边缘触发浏览器前进/后退手势
-    e.preventDefault();
-    const point = screenToWorld(e);
-    onWheel(point, e);
-  };
+  const handleWheelNative = useCallback(
+    (event: WheelEvent) => {
+      if (!onWheel || !rootRef.current) return;
+      event.preventDefault();
+
+      const rect = rootRef.current.getBoundingClientRect();
+      const screenX = event.clientX - rect.left;
+      const screenY = event.clientY - rect.top;
+      const safeScale = scale && scale !== 0 ? scale : 1;
+      const point: Point = {
+        x: (viewport?.x || 0) + screenX / safeScale,
+        y: (viewport?.y || 0) + screenY / safeScale,
+      };
+
+      onWheel(point, event as unknown as React.WheelEvent<HTMLDivElement>);
+    },
+    [onWheel, viewport?.x, viewport?.y, scale]
+  );
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return;
+    node.addEventListener("wheel", handleWheelNative, { passive: false });
+    return () => {
+      node.removeEventListener("wheel", handleWheelNative);
+    };
+  }, [handleWheelNative]);
 
   const canvasCursor = useMemo(() => {
     if (!cursor) return "default";
@@ -736,12 +757,12 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
 
   return (
     <div
+      ref={rootRef}
       className={styles.root}
       style={{ cursor: canvasCursor }}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
       onPointerUp={handleCanvasPointerUp}
-      onWheel={handleWheel}
     >
       {/* 元素层 */}
       <div className={styles.elementsLayer} ref={elementsLayerRef}>
