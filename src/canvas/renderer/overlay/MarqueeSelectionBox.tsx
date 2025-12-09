@@ -1,5 +1,8 @@
 import React from "react";
 
+// 与整体画布交互保持一致的主题色
+const THEME_COLOR = "#5ea500";
+
 interface MarqueeSelectionBoxProps {
   startPoint: { x: number; y: number };
   endPoint: { x: number; y: number };
@@ -23,16 +26,19 @@ export const MarqueeSelectionBox: React.FC<MarqueeSelectionBoxProps> = ({
   const screenHeight = height * scale;
 
   return (
-    <div style={{
-      position: "absolute",
-      left: screenX,
-      top: screenY,
-      width: screenWidth,
-      height: screenHeight,
-      border: "2px dashed #5ea500",
-      backgroundColor: "rgba(74, 144, 226, 0.1)",
-      pointerEvents: "none",
-      zIndex: 9999,
-    }} />
+    <div
+      style={{
+        position: "absolute",
+        left: screenX,
+        top: screenY,
+        width: screenWidth,
+        height: screenHeight,
+        border: `1px solid ${THEME_COLOR}`,
+        // 使用与主题色一致的半透明填充
+        backgroundColor: "rgba(94, 165, 0, 0.06)",
+        pointerEvents: "none",
+        zIndex: 9999,
+      }}
+    />
   );
 };
