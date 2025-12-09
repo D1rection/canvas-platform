@@ -176,8 +176,9 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
         style={{
           ...handleStyle,
           top: handleOffset,
-          left: width / 2 + handleOffset,
-          cursor: "n-resize"
+          left: "50%",
+          transform: "translateX(-50%)",
+          cursor: "n-resize",
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.TOP, e)}
       />
@@ -185,9 +186,10 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
       <div
         style={{
           ...handleStyle,
-          top: height / 2 + handleOffset,
+          top: "50%",
           right: handleOffset,
-          cursor: "e-resize"
+          transform: "translateY(-50%)",
+          cursor: "e-resize",
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.RIGHT, e)}
       />
@@ -196,8 +198,9 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
         style={{
           ...handleStyle,
           bottom: handleOffset,
-          left: width / 2 + handleOffset,
-          cursor: "s-resize"
+          left: "50%",
+          transform: "translateX(-50%)",
+          cursor: "s-resize",
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.BOTTOM, e)}
       />
@@ -205,9 +208,10 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
       <div
         style={{
           ...handleStyle,
-          top: height / 2 + handleOffset,
+          top: "50%",
           left: handleOffset,
-          cursor: "w-resize"
+          transform: "translateY(-50%)",
+          cursor: "w-resize",
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.LEFT, e)}
       />

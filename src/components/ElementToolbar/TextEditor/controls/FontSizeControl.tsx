@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { FONT_SIZE_RANGE } from "../utils/textFormatUtils";
 import styles from "../TextEditor.module.css";
 
@@ -13,6 +13,12 @@ export const FontSizeControl: React.FC<FontSizeControlProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState(fontSize.toString());
   const [isDragging, setIsDragging] = useState(false);
+
+  // 当外部传入的字号发生变化（例如通过缩放文本元素整体缩放字号）时，
+  // 同步更新输入框显示的数值
+  useEffect(() => {
+    setInputValue(fontSize.toString());
+  }, [fontSize]);
   
   // 统一的字体大小更新函数
   const updateFontSize = useCallback((newSize: number) => {

@@ -51,6 +51,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
   const handleOffset = -handleSize / 2;
   const rotateControlDistance = 32;
   const rotateLineHeight = rotateControlDistance;
+  const sideHitAreaWidth = 8;
 
   const handleDoubleClick = (e: React.MouseEvent<Element>) => {
     e.stopPropagation();
@@ -129,42 +130,66 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
         onPointerDown={handleRotatePointerDown}
       />
 
-      {/* 四角控制点（视觉上四个角，逻辑仍按左右调整宽度） */}
+      {/* 左右边缘的宽度缩放区域（不可见，只改变鼠标样式并触发水平缩放） */}
       <div
         style={{
-          ...cornerHandleStyle,
-          left: handleOffset,
-          top: handleOffset,
+          position: "absolute",
+          top: handleSize,
+          bottom: handleSize,
+          left: -sideHitAreaWidth / 2,
+          width: sideHitAreaWidth,
           cursor: "ew-resize",
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.LEFT, e)}
       />
       <div
         style={{
-          ...cornerHandleStyle,
-          right: handleOffset,
-          top: handleOffset,
+          position: "absolute",
+          top: handleSize,
+          bottom: handleSize,
+          right: -sideHitAreaWidth / 2,
+          width: sideHitAreaWidth,
           cursor: "ew-resize",
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.RIGHT, e)}
+      />
+
+      {/* 四角控制点：用于整体缩放文本（包括字号） */}
+      <div
+        style={{
+          ...cornerHandleStyle,
+          left: handleOffset,
+          top: handleOffset,
+          cursor: "nwse-resize",
+        }}
+        onPointerDown={(e) => handleScalePointerDown(ScaleDirection.TOP_LEFT, e)}
+      />
+      <div
+        style={{
+          ...cornerHandleStyle,
+          right: handleOffset,
+          top: handleOffset,
+          cursor: "nesw-resize",
+        }}
+        onPointerDown={(e) => handleScalePointerDown(ScaleDirection.TOP_RIGHT, e)}
       />
       <div
         style={{
           ...cornerHandleStyle,
           left: handleOffset,
           bottom: handleOffset,
-          cursor: "ew-resize",
+          cursor: "nesw-resize",
         }}
-        onPointerDown={(e) => handleScalePointerDown(ScaleDirection.LEFT, e)}
+        onPointerDown={(e) => handleScalePointerDown(ScaleDirection.BOTTOM_LEFT, e)}
       />
       <div
         style={{
           ...cornerHandleStyle,
           right: handleOffset,
           bottom: handleOffset,
-          cursor: "ew-resize",
+          cursor: "nwse-resize",
         }}
-        onPointerDown={(e) => handleScalePointerDown(ScaleDirection.RIGHT, e)}
+        onPointerDown={(e) => handleScalePointerDown(ScaleDirection.BOTTOM_RIGHT, e)}
       />
 
     </div>

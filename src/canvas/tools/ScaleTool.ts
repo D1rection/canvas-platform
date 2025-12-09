@@ -1,4 +1,4 @@
-import type { ID, Point, CanvasElement } from '../schema/model';
+import type { ID, Point, CanvasElement, TextElement } from '../schema/model';
 
 /**
  * 缩放方向枚举
@@ -15,6 +15,10 @@ export const ScaleDirection = {
 } as const;
 
 export type ScaleDirection = typeof ScaleDirection[keyof typeof ScaleDirection];
+
+// 文本缩放时的字号范围（与文本工具栏保持一致）
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 72;
 
 /**
  * 根据缩放方向，获取「固定锚点」在元素本地坐标系（以几何中心为原点）下的位置
@@ -74,6 +78,11 @@ export interface ScaleState {
   keepAspect: boolean;
   /** 固定不动的缩放锚点（世界坐标） */
   anchorWorld: Point;
+  /**
+   * 文本元素在缩放开始时各个 span 的初始字号
+   * - 仅在 element.type === "text" 时存在
+   */
+  initialTextFontSizes?: number[];
 }
 
 /**
@@ -173,6 +182,10 @@ export class ScaleTool {
       aspectRatio: size.height !== 0 ? size.width / size.height : 1,
       keepAspect: !!e.shiftKey,
       anchorWorld,
+      initialTextFontSizes:
+        element.type === "text"
+          ? (element as TextElement).spans.map((span) => span.style.fontSize)
+          : undefined,
     };
     
     // 防止默认行为和冒泡
@@ -251,6 +264,15 @@ export class ScaleTool {
     }
 
     const scale = this.viewportRef.current?.scale || 1;
+    const isTextElement = element.type === "text";
+    const isCornerDirection =
+      direction === ScaleDirection.TOP_LEFT ||
+      direction === ScaleDirection.TOP_RIGHT ||
+      direction === ScaleDirection.BOTTOM_LEFT ||
+      direction === ScaleDirection.BOTTOM_RIGHT;
+
+    // 文本元素在四角缩放时，始终保持等比缩放，避免文字被拉伸变形
+    const keepAspectEffective = keepAspect || (isTextElement && isCornerDirection);
 
     // 计算在世界坐标系下的位移增量
     const worldDeltaX = (e.clientX - startClientX) / scale;
@@ -282,7 +304,7 @@ export class ScaleTool {
         // 以右下角为锚点，左上角跟随拖动
         newWidth = initialWidth - deltaX;
         newHeight = initialHeight - deltaY;
-        if (keepAspect) {
+        if (keepAspectEffective) {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             newHeight = newWidth / aspectRatio;
           } else {
@@ -297,7 +319,7 @@ export class ScaleTool {
         // 以左下角为锚点，右上角跟随拖动
         newWidth = initialWidth + deltaX;
         newHeight = initialHeight - deltaY;
-        if (keepAspect) {
+        if (keepAspectEffective) {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             newHeight = newWidth / aspectRatio;
           } else {
@@ -312,7 +334,7 @@ export class ScaleTool {
         // 以右上角为锚点，左下角跟随拖动
         newWidth = initialWidth - deltaX;
         newHeight = initialHeight + deltaY;
-        if (keepAspect) {
+        if (keepAspectEffective) {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             newHeight = newWidth / aspectRatio;
           } else {
@@ -327,7 +349,7 @@ export class ScaleTool {
         // 以左上角为锚点，右下角跟随拖动
         newWidth = initialWidth + deltaX;
         newHeight = initialHeight + deltaY;
-        if (keepAspect) {
+        if (keepAspectEffective) {
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             newHeight = newWidth / aspectRatio;
           } else {
@@ -374,19 +396,52 @@ export class ScaleTool {
     newX = centerWorldNew.x - newWidth / 2;
     newY = centerWorldNew.y - newHeight / 2;
     
+    // 组装通用更新字段（位置 + 尺寸）
+    const updates: Partial<CanvasElement> = {
+      transform: {
+        ...element.transform,
+        x: newX,
+        y: newY,
+      },
+      size: {
+        width: newWidth,
+        height: newHeight,
+      },
+    };
+
+    // 文本元素在四角缩放时，同步按比例调整字号
+    if (
+      isTextElement &&
+      isCornerDirection &&
+      this.scaleState.initialTextFontSizes &&
+      initialWidth > 0
+    ) {
+      const textElement = element as TextElement;
+      const scaleFactor = newWidth / initialWidth;
+
+      const newSpans = textElement.spans.map((span, index) => {
+        const initialFontSize =
+          this.scaleState?.initialTextFontSizes?.[index] ?? span.style.fontSize;
+        const scaledSize = initialFontSize * scaleFactor;
+        const clampedSize = Math.min(
+          MAX_FONT_SIZE,
+          Math.max(MIN_FONT_SIZE, scaledSize)
+        );
+        return {
+          ...span,
+          style: {
+            ...span.style,
+            fontSize: clampedSize,
+          },
+        };
+      });
+
+      (updates as Partial<TextElement>).spans = newSpans;
+    }
+
     // 确保回调函数存在并执行更新
     if (this.onUpdateElementCallback) {
-      this.onUpdateElementCallback(elementId, {
-        transform: {
-          ...element.transform,
-          x: newX,
-          y: newY
-        },
-        size: {
-          width: newWidth,
-          height: newHeight
-        }
-      });
+      this.onUpdateElementCallback(elementId, updates);
     }
   }
   
