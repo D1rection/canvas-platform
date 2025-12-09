@@ -374,7 +374,7 @@ export class ScaleTool {
    * 处理全局鼠标移动事件（用于缩放操作）
    * @param e 指针事件
    */
-  private handleGlobalPointerMove(e: PointerEvent): void {
+	  private handleGlobalPointerMove(e: PointerEvent): void {
     const callback = this.onUpdateElementCallback;
     if (
       !this.scaleState ||
@@ -400,7 +400,7 @@ export class ScaleTool {
       multi,
     } = this.scaleState;
 
-    const scale = this.viewportRef.current?.scale || 1;
+	    const scale = this.viewportRef.current?.scale || 1;
 
     // 计算在世界坐标系下的位移增量
     const worldDeltaX = (e.clientX - startClientX) / scale;
@@ -409,8 +409,8 @@ export class ScaleTool {
     // 统一的最小尺寸限制，避免出现 0 或负尺寸
     const MIN_SIZE = 10;
 
-    // 多选缩放
-    if (multi) {
+	    // 多选缩放
+	    if (multi) {
       let newGroupWidth = initialWidth;
       let newGroupHeight = initialHeight;
 
@@ -478,49 +478,85 @@ export class ScaleTool {
       newGroupWidth = Math.max(MIN_SIZE, newGroupWidth);
       newGroupHeight = Math.max(MIN_SIZE, newGroupHeight);
 
-      // 计算 group 缩放因子
-      const sx = newGroupWidth / initialWidth;
-      const sy = newGroupHeight / initialHeight;
+	      // 计算 group 缩放因子
+	      const sx = newGroupWidth / initialWidth;
+	      const sy = newGroupHeight / initialHeight;
 
-      // 按 group 的锚点缩放每个元素的位置与尺寸
-      for (const info of multi.elements) {
-        const element = this.documentRef.current.elements[info.id];
-        if (!element || !("size" in element) || !element.transform) continue;
+	      // 多选时：按 group 的锚点缩放每个元素的位置与尺寸
+	      for (const info of multi.elements) {
+	        const element = this.documentRef.current.elements[info.id];
+	        if (!element || !("size" in element) || !element.transform) continue;
 
-        // 以 anchorWorld 为缩放中心，缩放元素中心位置
-        const dx = info.center.x - anchorWorld.x;
-        const dy = info.center.y - anchorWorld.y;
+	        // 以 anchorWorld 为缩放中心，缩放元素中心位置
+	        const dx = info.center.x - anchorWorld.x;
+	        const dy = info.center.y - anchorWorld.y;
 
-        const newCenter: Point = {
-          x: anchorWorld.x + dx * sx,
-          y: anchorWorld.y + dy * sy,
-        };
+	        const newCenter: Point = {
+	          x: anchorWorld.x + dx * sx,
+	          y: anchorWorld.y + dy * sy,
+	        };
 
-        let newWidth = info.initialWidth * Math.abs(sx);
-        let newHeight = info.initialHeight * Math.abs(sy);
+	        let newWidth = info.initialWidth * Math.abs(sx);
+	        let newHeight = info.initialHeight * Math.abs(sy);
 
-        newWidth = Math.max(MIN_SIZE, newWidth);
-        newHeight = Math.max(MIN_SIZE, newHeight);
+	        newWidth = Math.max(MIN_SIZE, newWidth);
+	        newHeight = Math.max(MIN_SIZE, newHeight);
 
-        const newX = newCenter.x - newWidth / 2;
-        const newY = newCenter.y - newHeight / 2;
+	        const newX = newCenter.x - newWidth / 2;
+	        const newY = newCenter.y - newHeight / 2;
 
-        const updates: Partial<CanvasElement> = {
-          transform: {
-            ...element.transform,
-            x: newX,
-            y: newY,
-          },
-          size: {
-            width: newWidth,
-            height: newHeight,
-          },
-        };
+	        const updates: Partial<CanvasElement> = {
+	          transform: {
+	            ...element.transform,
+	            x: newX,
+	            y: newY,
+	          },
+	          size: {
+	            width: newWidth,
+	            height: newHeight,
+	          },
+	        };
 
-        // 多选缩放时，暂不自动调整文本字号，避免复杂的多文本联动场景
+	        // 文本元素：多选时在四角缩放也支持字号缩放（近似处理）
+	        const isTextElement = info.isText;
+	        const isCornerDirection =
+	          direction === ScaleDirection.TOP_LEFT ||
+	          direction === ScaleDirection.TOP_RIGHT ||
+	          direction === ScaleDirection.BOTTOM_LEFT ||
+	          direction === ScaleDirection.BOTTOM_RIGHT;
 
-        callback(info.id, updates);
-      }
+	        if (
+	          isTextElement &&
+	          isCornerDirection &&
+	          info.textFontSizes &&
+	          info.textFontSizes.length > 0
+	        ) {
+	          const textElement = element as TextElement;
+	          // 使用水平方向缩放因子近似字号缩放比例
+	          const fontScale = Math.abs(sx) || 1;
+
+	          const newSpans = textElement.spans.map((span, index) => {
+	            const initialFontSize =
+	              info.textFontSizes?.[index] ?? span.style.fontSize;
+	            const scaledSize = initialFontSize * fontScale;
+	            const clampedSize = Math.min(
+	              MAX_FONT_SIZE,
+	              Math.max(MIN_FONT_SIZE, scaledSize)
+	            );
+	            return {
+	              ...span,
+	              style: {
+	                ...span.style,
+	                fontSize: clampedSize,
+	              },
+	            };
+	          });
+
+	          (updates as Partial<TextElement>).spans = newSpans;
+	        }
+
+	        callback(info.id, updates);
+	      }
 
       return;
     }
