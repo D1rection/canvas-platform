@@ -17,6 +17,9 @@ export const textTool: ToolHandler = {
 
   // 在画布空白处点击创建文本
   onCanvasPointerDown: (ctx, point) => {
+    // 先切回选择工具
+    ctx.setTool("select");
+
     ctx.editor.addText({
       x: point.x,
       y: point.y,
@@ -24,11 +27,6 @@ export const textTool: ToolHandler = {
       content: "",
       // 不传 spans/style/align/size，走 addText 内部的统一默认逻辑
     });
-
-    
-
-    // 切回选择工具
-    ctx.setTool("select");
   },
 
   // 在元素上点击时，也支持在对应位置创建文本
@@ -48,13 +46,14 @@ export const textTool: ToolHandler = {
       y: viewport.y + screenY / viewport.scale,
     };
 
+    // 先切回选择工具（会重置当前选区）
+    ctx.setTool("select");
+
     ctx.editor.addText({
       x: point.x,
       y: point.y,
       lineHeight: 1.5,
       content: "",
     });
-
-    ctx.setTool("select");
   },
 };
