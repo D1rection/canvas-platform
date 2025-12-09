@@ -12,13 +12,18 @@ import styles from "./ElementToolbar.module.css";
 interface ColorPickerProps {
   element: CanvasElement;
   onUpdateElement: (id: ID, updates: Partial<CanvasElement>) => void;
+  isBackgroundColor?: boolean;
 }
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({
   element,
   onUpdateElement,
+  isBackgroundColor = false,
 }) => {
-  const currentColor = getElementColor(element);
+  // 根据是否为背景色选择获取颜色的方式
+  const currentColor = isBackgroundColor && element.type === 'text' 
+    ? (element as any).spans[0]?.style.background || '#FFFFFF'
+    : getElementColor(element);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [customColor, setCustomColor] = useState(currentColor);
   const colorPickerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +54,27 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       event.stopPropagation();
     }
 
+    // 处理透明选项
+    if (color === 'transparent') {
+      if (isBackgroundColor && element.type === 'text') {
+        // 清除文本背景色
+        const textElement = element as any;
+        const colorUpdates = {
+          spans: textElement.spans.map((span: any) => {
+            const { background, ...restStyle } = span.style;
+            return {
+              ...span,
+              style: restStyle,
+            };
+          }),
+        };
+        onUpdateElement(element.id, colorUpdates);
+        setCustomColor('#FFFFFF'); // 重置自定义颜色输入框为白色
+        setIsColorPickerOpen(false);
+        return;
+      }
+    }
+
     // 简单的颜色格式校验（仅检查是否为 6 位或 3 位的 Hex 颜色）
     const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(color);
     
@@ -59,8 +85,24 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     }
     
     if (validColor !== currentColor) {
+      if (isBackgroundColor && element.type === 'text') {
+        // 设置文本背景色
+        const textElement = element as any;
+        const colorUpdates = {
+          spans: textElement.spans.map((span: any) => ({
+            ...span,
+            style: {
+              ...span.style,
+              background: validColor,
+            },
+          })),
+        };
+        onUpdateElement(element.id, colorUpdates);
+      } else {
+        // 设置文本颜色或形状颜色
         const colorUpdates = setElementColor(element, validColor);
         onUpdateElement(element.id, colorUpdates);
+      }
     }
     setCustomColor(validColor);
     setIsColorPickerOpen(false);
@@ -78,8 +120,24 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     // 简单的颜色格式校验
     const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(color);
     if (isValidHex) {
-      const colorUpdates = setElementColor(element, color);
-      onUpdateElement(element.id, colorUpdates);
+      if (isBackgroundColor && element.type === 'text') {
+        // 设置文本背景色
+        const textElement = element as any;
+        const colorUpdates = {
+          spans: textElement.spans.map((span: any) => ({
+            ...span,
+            style: {
+              ...span.style,
+              background: color,
+            },
+          })),
+        };
+        onUpdateElement(element.id, colorUpdates);
+      } else {
+        // 设置文本颜色或形状颜色
+        const colorUpdates = setElementColor(element, color);
+        onUpdateElement(element.id, colorUpdates);
+      }
     }
   };
 
@@ -123,6 +181,18 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               />
             ))}
           </div>
+
+          {/* 透明选项 */}
+          {isBackgroundColor && (
+            <div className={styles.customColorSection}>
+              <button
+                className={styles.transparentButton}
+                onClick={() => handleColorSelect('transparent')}
+              >
+                透明（无背景）
+              </button>
+            </div>
+          )}
 
           {/* 自定义颜色选择器 */}
           <div className={styles.customColorSection}>

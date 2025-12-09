@@ -41,6 +41,7 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
     handleToggleBold,
     handleToggleItalic,
     handleToggleUnderline,
+    handleToggleStrikethrough,
   } = useTextFormat({ element: textElement, onUpdateElement });
 
   // 获取元素在屏幕上的边界
@@ -333,9 +334,11 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
         isBold={currentStyle.bold || false}
         isItalic={currentStyle.italic || false}
         isUnderlined={currentStyle.decorations?.includes("underline") || false}
+        isStrikethrough={currentStyle.decorations?.includes("line-through") || false}
         onToggleBold={handleToggleBold}
         onToggleItalic={handleToggleItalic}
         onToggleUnderline={handleToggleUnderline}
+        onToggleStrikethrough={handleToggleStrikethrough}
       />
 
       {/* 文本颜色选择 */}
@@ -345,6 +348,16 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
           // 直接将ColorPicker返回的更新应用到文本元素
           onUpdateElement(id, updates);
         }}
+      />
+
+      {/* 文本背景色选择 */}
+      <ColorPicker
+        element={textElement}
+        onUpdateElement={(id, updates) => {
+          // 直接将ColorPicker返回的更新应用到文本元素
+          onUpdateElement(id, updates);
+        }}
+        isBackgroundColor={true}
       />
     </div>
   );

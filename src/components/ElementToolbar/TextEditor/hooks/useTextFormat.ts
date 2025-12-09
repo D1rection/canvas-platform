@@ -5,7 +5,8 @@ import {
   updateTextStyle, 
   toggleBold, 
   toggleItalic, 
-  toggleUnderline 
+  toggleUnderline,
+  toggleStrikethrough
 } from "../utils/textFormatUtils";
 
 interface UseTextFormatProps {
@@ -48,9 +49,21 @@ export const useTextFormat = ({ element, onUpdateElement, spanIndex }: UseTextFo
     onUpdateElement(element.id, updates);
   }, [element, onUpdateElement, spanIndex]);
   
+  // 切换删除线
+  const handleToggleStrikethrough = useCallback(() => {
+    const updates = toggleStrikethrough(element, spanIndex);
+    onUpdateElement(element.id, updates);
+  }, [element, onUpdateElement, spanIndex]);
+  
   // 更新文本颜色
   const handleColorChange = useCallback((color: string) => {
     const updates = updateTextStyle(element, { color }, spanIndex);
+    onUpdateElement(element.id, updates);
+  }, [element, onUpdateElement, spanIndex]);
+  
+  // 更新文本背景色
+  const handleBackgroundColorChange = useCallback((background: string) => {
+    const updates = updateTextStyle(element, { background }, spanIndex);
     onUpdateElement(element.id, updates);
   }, [element, onUpdateElement, spanIndex]);
   
@@ -61,6 +74,8 @@ export const useTextFormat = ({ element, onUpdateElement, spanIndex }: UseTextFo
     handleToggleBold,
     handleToggleItalic,
     handleToggleUnderline,
+    handleToggleStrikethrough,
     handleColorChange,
+    handleBackgroundColorChange,
   };
 };

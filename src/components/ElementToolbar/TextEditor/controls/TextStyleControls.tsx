@@ -5,18 +5,22 @@ interface TextStyleControlsProps {
   isBold: boolean;
   isItalic: boolean;
   isUnderlined: boolean;
+  isStrikethrough: boolean;
   onToggleBold: () => void;
   onToggleItalic: () => void;
   onToggleUnderline: () => void;
+  onToggleStrikethrough: () => void;
 }
 
 export const TextStyleControls: React.FC<TextStyleControlsProps> = ({
   isBold,
   isItalic,
   isUnderlined,
+  isStrikethrough,
   onToggleBold,
   onToggleItalic,
   onToggleUnderline,
+  onToggleStrikethrough,
 }) => {
   return (
     <div className={styles.formattingControls}>
@@ -40,6 +44,13 @@ export const TextStyleControls: React.FC<TextStyleControlsProps> = ({
         title="下划线"
       >
         U
+      </button>
+      <button
+        className={`${styles.formatButton} ${isStrikethrough ? styles.active : ""}`}
+        onClick={onToggleStrikethrough}
+        title="删除线"
+      >
+        S
       </button>
     </div>
   );

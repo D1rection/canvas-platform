@@ -147,6 +147,35 @@
   min-width: 0; /* 允许输入框在 flex 容器中正确收缩 */
 }
 
+.transparentButton {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.transparentButton:hover {
+  background-color: #f5f5f5;
+  border-color: #999;
+  color: #333;
+}
+
+.transparentButton::before {
+  content: "□";
+  font-size: 14px;
+  color: #999;
+}
+
 
 
 /* ==================================== */

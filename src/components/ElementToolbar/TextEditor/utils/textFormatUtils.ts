@@ -188,3 +188,23 @@ export const toggleUnderline = (element: TextElement, spanIndex?: number): Parti
   
   return updateTextStyle(element, { decorations: newDecorations.length > 0 ? newDecorations : undefined }, spanIndex);
 };
+
+/**
+ * 切换文本的删除线样式
+ * @param element 文本元素
+ * @param spanIndex 可选的span索引
+ * @returns 更新后的元素
+ */
+export const toggleStrikethrough = (element: TextElement, spanIndex?: number): Partial<TextElement> => {
+  const currentStyle = getCurrentTextStyle(element, spanIndex);
+  const decorations = currentStyle.decorations || [];
+  
+  let newDecorations: Array<"underline" | "line-through" | "none">;
+  if (decorations.includes("line-through")) {
+    newDecorations = decorations.filter(deco => deco !== "line-through") as Array<"underline" | "line-through" | "none">;
+  } else {
+    newDecorations = [...decorations, "line-through"] as Array<"underline" | "line-through" | "none">;
+  }
+  
+  return updateTextStyle(element, { decorations: newDecorations.length > 0 ? newDecorations : undefined }, spanIndex);
+};
