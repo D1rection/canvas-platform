@@ -17,6 +17,45 @@ export const ScaleDirection = {
 export type ScaleDirection = typeof ScaleDirection[keyof typeof ScaleDirection];
 
 /**
+ * 根据缩放方向，获取「固定锚点」在元素本地坐标系（以几何中心为原点）下的位置
+ * - 例如：右下角控制点缩放时，锚点为左上角
+ */
+function getAnchorLocal(width: number, height: number, direction: ScaleDirection): Point {
+  const halfW = width / 2;
+  const halfH = height / 2;
+
+  switch (direction) {
+    case ScaleDirection.BOTTOM_RIGHT:
+      // 锚点：左上角
+      return { x: -halfW, y: -halfH };
+    case ScaleDirection.TOP_LEFT:
+      // 锚点：右下角
+      return { x: halfW, y: halfH };
+    case ScaleDirection.TOP_RIGHT:
+      // 锚点：左下角
+      return { x: -halfW, y: halfH };
+    case ScaleDirection.BOTTOM_LEFT:
+      // 锚点：右上角
+      return { x: halfW, y: -halfH };
+
+    case ScaleDirection.TOP:
+      // 锚点：下边中心
+      return { x: 0, y: halfH };
+    case ScaleDirection.BOTTOM:
+      // 锚点：上边中心
+      return { x: 0, y: -halfH };
+    case ScaleDirection.LEFT:
+      // 锚点：右边中心
+      return { x: halfW, y: 0 };
+    case ScaleDirection.RIGHT:
+      // 锚点：左边中心
+      return { x: -halfW, y: 0 };
+    default:
+      return { x: 0, y: 0 };
+  }
+}
+
+/**
  * 缩放状态接口定义
  */
 export interface ScaleState {
@@ -31,6 +70,10 @@ export interface ScaleState {
   initialY: number;
   elementCenter: Point;
   aspectRatio: number;
+  /** 是否保持宽高比（按下 Shift 时开启） */
+  keepAspect: boolean;
+  /** 固定不动的缩放锚点（世界坐标） */
+  anchorWorld: Point;
 }
 
 /**
@@ -95,12 +138,24 @@ export class ScaleTool {
     }
     
     const { size, transform } = element;
-    // 计算元素中心点
-    
-    // 计算元素中心点
+
+    // 计算元素中心点（世界坐标）
     const elementCenter: Point = {
       x: transform.x + size.width / 2,
       y: transform.y + size.height / 2,
+    };
+
+    // 计算当前缩放方向对应的锚点（本地坐标，以几何中心为原点）
+    const anchorLocal = getAnchorLocal(size.width, size.height, direction);
+    const rotation = transform.rotation || 0;
+    const rad = (rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    // 将锚点从本地坐标转换到世界坐标，后续缩放过程中保持该点不动
+    const anchorWorld: Point = {
+      x: elementCenter.x + anchorLocal.x * cos - anchorLocal.y * sin,
+      y: elementCenter.y + anchorLocal.x * sin + anchorLocal.y * cos,
     };
     
     // 记录缩放起始状态
@@ -115,7 +170,9 @@ export class ScaleTool {
       initialX: transform.x,
       initialY: transform.y,
       elementCenter,
-      aspectRatio: size.width / size.height
+      aspectRatio: size.height !== 0 ? size.width / size.height : 1,
+      keepAspect: !!e.shiftKey,
+      anchorWorld,
     };
     
     // 防止默认行为和冒泡
@@ -173,7 +230,7 @@ export class ScaleTool {
         !this.documentRef?.current || !this.viewportRef?.current || !this.onUpdateElementCallback) {
       return;
     }
-    
+
     const {
       elementId,
       direction,
@@ -183,107 +240,139 @@ export class ScaleTool {
       initialHeight,
       initialX,
       initialY,
-      aspectRatio
+      aspectRatio,
+      keepAspect,
+      anchorWorld,
     } = this.scaleState;
-    
+
     const element = this.documentRef.current.elements[elementId];
     if (!element || !('size' in element) || !element.transform) {
       return;
     }
-    
+
     const scale = this.viewportRef.current?.scale || 1;
-    
-    // 计算缩放增量
-    const deltaX = (e.clientX - startClientX) / scale;
-    const deltaY = (e.clientY - startClientY) / scale;
-    
+
+    // 计算在世界坐标系下的位移增量
+    const worldDeltaX = (e.clientX - startClientX) / scale;
+    const worldDeltaY = (e.clientY - startClientY) / scale;
+
+    // 将位移增量投影到元素本地坐标系（考虑旋转）
+    // 这样即便元素被旋转，缩放依然沿着元素自身的水平/垂直方向进行
+    const rotation = element.transform.rotation || 0;
+    const rad = (rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    // 本地坐标中的增量（右为正，下为正）
+    const deltaX =  cos * worldDeltaX + sin * worldDeltaY;
+    const deltaY = -sin * worldDeltaX + cos * worldDeltaY;
+
     let newWidth = initialWidth;
     let newHeight = initialHeight;
     let newX = initialX;
     let newY = initialY;
-    
+
+    // 统一的最小尺寸限制，避免出现 0 或负尺寸
+    const MIN_SIZE = 10;
+
     // 根据缩放方向计算新的尺寸和位置
+    // 约定：四个角的控制点以对角为锚点（缩放中心）
     switch (direction) {
       case ScaleDirection.TOP_LEFT:
-        newWidth = Math.max(10, initialWidth - deltaX);
-        newHeight = Math.max(10, initialHeight - deltaY);
-        // 保持宽高比
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          newHeight = newWidth / aspectRatio;
-        } else {
-          newWidth = newHeight * aspectRatio;
+        // 以右下角为锚点，左上角跟随拖动
+        newWidth = initialWidth - deltaX;
+        newHeight = initialHeight - deltaY;
+        if (keepAspect) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            newHeight = newWidth / aspectRatio;
+          } else {
+            newWidth = newHeight * aspectRatio;
+          }
         }
-        newX = initialX + (initialWidth - newWidth);
-        newY = initialY + (initialHeight - newHeight);
+        newWidth = Math.max(MIN_SIZE, newWidth);
+        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
-        
+
       case ScaleDirection.TOP_RIGHT:
-        newWidth = Math.max(10, initialWidth + deltaX);
-        newHeight = Math.max(10, initialHeight - deltaY);
-        // 保持宽高比
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          newHeight = newWidth / aspectRatio;
-        } else {
-          newWidth = newHeight * aspectRatio;
+        // 以左下角为锚点，右上角跟随拖动
+        newWidth = initialWidth + deltaX;
+        newHeight = initialHeight - deltaY;
+        if (keepAspect) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            newHeight = newWidth / aspectRatio;
+          } else {
+            newWidth = newHeight * aspectRatio;
+          }
         }
-        newY = initialY + (initialHeight - newHeight);
+        newWidth = Math.max(MIN_SIZE, newWidth);
+        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
-        
+
       case ScaleDirection.BOTTOM_LEFT:
-        newWidth = Math.max(10, initialWidth - deltaX);
-        newHeight = Math.max(10, initialHeight + deltaY);
-        // 保持宽高比
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          newHeight = newWidth / aspectRatio;
-        } else {
-          newWidth = newHeight * aspectRatio;
+        // 以右上角为锚点，左下角跟随拖动
+        newWidth = initialWidth - deltaX;
+        newHeight = initialHeight + deltaY;
+        if (keepAspect) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            newHeight = newWidth / aspectRatio;
+          } else {
+            newWidth = newHeight * aspectRatio;
+          }
         }
-        newX = initialX + (initialWidth - newWidth);
+        newWidth = Math.max(MIN_SIZE, newWidth);
+        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
-        
+
       case ScaleDirection.BOTTOM_RIGHT:
-        newWidth = Math.max(10, initialWidth + deltaX);
-        newHeight = Math.max(10, initialHeight + deltaY);
-        // 保持宽高比
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          newHeight = newWidth / aspectRatio;
-        } else {
-          newWidth = newHeight * aspectRatio;
+        // 以左上角为锚点，右下角跟随拖动
+        newWidth = initialWidth + deltaX;
+        newHeight = initialHeight + deltaY;
+        if (keepAspect) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            newHeight = newWidth / aspectRatio;
+          } else {
+            newWidth = newHeight * aspectRatio;
+          }
         }
+        newWidth = Math.max(MIN_SIZE, newWidth);
+        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
-        
+
       case ScaleDirection.TOP:
         // TOP中点：垂直拉伸，保持宽度不变，保持底部位置不变
-        newHeight = Math.max(10, initialHeight - deltaY);
+        newHeight = Math.max(MIN_SIZE, initialHeight - deltaY);
         newWidth = initialWidth; // 保持宽度不变
-        newX = initialX; // 保持左侧位置不变
-        newY = initialY - (newHeight - initialHeight); // 调整顶部位置，保持底部位置不变
         break;
-        
+
       case ScaleDirection.RIGHT:
         // RIGHT中点：水平拉伸，保持高度不变，保持左侧位置不变
-        newWidth = Math.max(10, initialWidth + deltaX);
+        newWidth = Math.max(MIN_SIZE, initialWidth + deltaX);
         newHeight = initialHeight; // 保持高度不变
-        newX = initialX; // 保持左侧位置不变
-        newY = initialY; // 保持顶部位置不变
         break;
-        
+
       case ScaleDirection.BOTTOM:
         // BOTTOM中点：垂直拉伸，保持宽度不变，保持顶部位置不变
-        newHeight = Math.max(10, initialHeight + deltaY);
+        newHeight = Math.max(MIN_SIZE, initialHeight + deltaY);
         newWidth = initialWidth; // 保持宽度不变
-        newX = initialX; // 保持左侧位置不变
-        newY = initialY; // 保持顶部位置不变
         break;
-        
+
       case ScaleDirection.LEFT:
         // LEFT中点：水平拉伸，保持高度不变，保持右侧位置不变
-        newWidth = Math.max(10, initialWidth - deltaX);
+        newWidth = Math.max(MIN_SIZE, initialWidth - deltaX);
         newHeight = initialHeight; // 保持高度不变
-        newX = initialX + (initialWidth - newWidth); // 调整左侧位置，保持右侧位置不变
-        newY = initialY; // 保持顶部位置不变
         break;
     }
+
+    // 重新根据「固定锚点」计算新的元素位置（transform.x/y）
+    // 目标：缩放前后，anchorWorld 在世界坐标中保持不变
+    const anchorLocalNew = getAnchorLocal(newWidth, newHeight, direction);
+    const centerWorldNew: Point = {
+      x: anchorWorld.x - (anchorLocalNew.x * cos - anchorLocalNew.y * sin),
+      y: anchorWorld.y - (anchorLocalNew.x * sin + anchorLocalNew.y * cos),
+    };
+
+    newX = centerWorldNew.x - newWidth / 2;
+    newY = centerWorldNew.y - newHeight / 2;
     
     // 确保回调函数存在并执行更新
     if (this.onUpdateElementCallback) {
