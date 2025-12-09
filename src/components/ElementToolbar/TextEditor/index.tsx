@@ -11,6 +11,7 @@ import { FontSizeControl } from "./controls/FontSizeControl";
 import { TextStyleControls } from "./controls/TextStyleControls";
 import { TextEditProvider } from "./contexts/TextEditContext";
 import { useTextFormat } from "./hooks/useTextFormat";
+import { FONT_SIZE_RANGE } from "./utils/textFormatUtils";
 import styles from "./TextEditor.module.css";
 
 interface TextEditorProps {
@@ -263,6 +264,36 @@ const TextEditorImpl: React.FC<TextEditorProps> = ({
   const handleToolbarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  // 添加全局快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 检查是否按下了Ctrl键（或Mac上的Cmd键）
+      const isCtrlPressed = e.ctrlKey || e.metaKey;
+      
+      if (isCtrlPressed) {
+        if (e.key === "[") {
+          // Ctrl+[ 减小字号
+          e.preventDefault();
+          const newSize = Math.max(FONT_SIZE_RANGE.min, currentStyle.fontSize - 1);
+          handleFontSizeChange(newSize);
+        } else if (e.key === "]") {
+          // Ctrl+] 增大字号
+          e.preventDefault();
+          const newSize = Math.min(FONT_SIZE_RANGE.max, currentStyle.fontSize + 1);
+          handleFontSizeChange(newSize);
+        }
+      }
+    };
+
+    // 监听键盘事件
+    window.addEventListener("keydown", handleKeyDown);
+
+    // 清理事件监听
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [currentStyle.fontSize, handleFontSizeChange]);
 
   // 工具栏样式 - 与其他元素工具栏保持一致的隐藏逻辑
   // 当处于拖动、缩放或旋转操作时隐藏，在文本内容编辑时保持可见

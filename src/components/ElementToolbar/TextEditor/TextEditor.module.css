@@ -1,7 +1,7 @@
 /* TextEditor.module.css */
+/* 主工具栏样式 - 与ElementToolbar保持完全一致 */
 .toolbarWrapper {
   position: absolute;
-  /* 恢复原始代码中的毛玻璃和半透明效果 */
   background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -12,51 +12,100 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: fit-content; /* 根据内容自适应最小宽度 */
-  width: max-content; /* 根据内容自适应宽度 */
+  min-width: fit-content;
+  width: max-content;
   z-index: 1000;
   pointer-events: auto;
-  transition: top 0.2s ease, left 0.2s ease;
+  transition: top 0.2s ease, left 0.2s ease, opacity 0.2s ease;
   user-select: none;
   -webkit-user-select: none;
   overflow: visible;
   box-sizing: border-box;
 }
+
+/* 控件组容器 */
 .controlGroup {
   position: relative;
-  margin-right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .fontFamilySelect {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
   background: white;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  min-width: 120px;
+  max-width: 200px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.fontFamilySelect:hover {
+  border-color: #45b7d1;
+  box-shadow: 0 2px 6px rgba(69, 183, 209, 0.2);
+}
+
+.fontFamilySelect:focus {
+  outline: none;
+  border-color: #45b7d1;
+  box-shadow: 0 0 0 2px rgba(69, 183, 209, 0.2);
 }
 
 .dropdownArrow {
-  margin-left: 4px;
-  font-size: 12px;
+  margin-left: 8px;
+  font-size: 10px;
+  color: #666;
+  transition: transform 0.2s ease;
+}
+
+.fontFamilySelect.open .dropdownArrow {
+  transform: rotate(180deg);
 }
 
 .fontFamilyDropdown {
   position: absolute;
   bottom: 100%;
   left: 0;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
   z-index: 1001;
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   width: max-content;
   min-width: 150px;
   margin-bottom: 8px;
+  padding: 4px;
+}
+
+/* 自定义滚动条 */
+.fontFamilyDropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fontFamilyDropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.fontFamilyDropdown::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.fontFamilyDropdown::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .fontFamilyOption {
@@ -67,17 +116,177 @@
   background: transparent;
   text-align: left;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  color: #333;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .fontFamilyOption:hover {
+  background-color: #f0f9ff;
+  color: #1890ff;
+}
+
+.fontFamilyOption.selected {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.fontFamilyOption:active {
+  background-color: #bae7ff;
+}
+/* 文字大小控制样式 */
+.fontSizeControl {
+  display: grid;
+  grid-template-columns: 28px 48px 28px;
+  grid-template-rows: auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 2px;
+}
+
+/* 按钮布局 */
+.fontSizeButton:first-of-type {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.fontSizeButton:last-of-type {
+  grid-row: 1;
+  grid-column: 3;
+}
+
+/* 输入框布局 */
+.fontSizeInput {
+  grid-row: 1;
+  grid-column: 2;
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fontSizeInput:focus {
+  outline: none;
+  border-color: #45b7d1;
+  box-shadow: 0 0 0 2px rgba(69, 183, 209, 0.2);
+}
+
+/* 滑动条布局 */
+.fontSizeSlider {
+  grid-row: 2;
+  grid-column: 1 / span 3;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #ccc, #666);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 按钮样式优化 */
+.fontSizeButton {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.fontSizeButton:hover:not(:disabled) {
+  background-color: #f0f9ff;
+  border-color: #91d5ff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fontSizeButton:active:not(:disabled) {
+  background-color: #e6f7ff;
+  border-color: #40a9ff;
+  transform: scale(0.98);
+}
+
+.fontSizeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
   background-color: #f5f5f5;
 }
 
-.selected {
-  background-color: #e6f7ff;
-  font-weight: bold;
+/* 滑块焦点状态 */
+.fontSizeSlider:focus {
+  box-shadow: 0 0 0 2px rgba(69, 183, 209, 0.3);
+  background: linear-gradient(to right, #ccc, #45b7d1);
 }
+
+/* 滑块拖拽状态 */
+.fontSizeSliderDragging,
+.fontSizeSlider[data-dragging="true"] {
+  background: linear-gradient(to right, #ccc, #3498db);
+}
+
+/* 自定义滑块拇指样式 */
+.fontSizeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #666;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.fontSizeSlider::-webkit-slider-thumb:hover,
+.fontSizeSlider:focus::-webkit-slider-thumb {
+  background-color: #45b7d1;
+  transform: scale(1.1);
+}
+
+.fontSizeSlider::-webkit-slider-thumb:active {
+  background-color: #3498db;
+  transform: scale(1.2);
+}
+
+.fontSizeSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #666;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.fontSizeSlider::-moz-range-thumb:hover,
+.fontSizeSlider:focus::-moz-range-thumb {
+  background-color: #45b7d1;
+  transform: scale(1.1);
+}
+
+.fontSizeSlider::-moz-range-thumb:active {
+  background-color: #3498db;
+  transform: scale(1.2);
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
   .toolbarWrapper {
