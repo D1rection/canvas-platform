@@ -25,7 +25,7 @@ export const TextEditor: React.FC<TextEditorProps> = ({
 
   const baseStyle = spans[0]?.style || {
     fontSize: 20,
-    fontFamily: "Arial",
+    fontFamily: "SimSun",
     color: "#000",
   };
 

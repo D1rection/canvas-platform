@@ -10,7 +10,7 @@ export const textTool: ToolHandler = {
         {
           text: "双击编辑文本", // 默认文本
           style: {
-            fontFamily: "Arial",
+            fontFamily: "SimSun",
             fontSize: 20,
             color: "#000000",
             background: 'transparent'

@@ -631,7 +631,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       {
         text: "点击编辑文本", // 默认文本内容
         style: {
-          fontFamily: "Arial",
+          fontFamily: "SimSun",
           fontSize: 20,
           color: "#000000",
           background: "#ffffff", // 默认背景色（可选）
