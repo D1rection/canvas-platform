@@ -240,6 +240,15 @@ function App({ canvasContainer }: AppProps) {
     overlayLayerRef.current = ref.current;
   };
 
+  // 设置当前正在编辑的文本元素 ID
+  const handleSetEditingElementId = (id: ID | null) => {
+    try {
+      editorService.setEditingElement(id);
+    } catch (error) {
+      console.error("Failed to set editing element in App:", error);
+    }
+  };
+
   // 通过视口 y 值滚动画布
   const handleScrollViewportToY = (nextY: number) => {
     const current = editorService.getState().viewport;
@@ -395,6 +404,7 @@ function App({ canvasContainer }: AppProps) {
                 onRegisterPanPreview={handleRegisterPanPreview}
                 onRegisterElementsLayerRef={handleRegisterElementsLayerRef}
                 onRegisterOverlayLayerRef={handleRegisterOverlayLayerRef}
+                onSetEditingElementId={handleSetEditingElementId}
                 onCanvasPointerDown={handleCanvasPointerDown}
                 onCanvasPointerMove={handleCanvasPointerMove}
                 onCanvasPointerUp={handleCanvasPointerUp}

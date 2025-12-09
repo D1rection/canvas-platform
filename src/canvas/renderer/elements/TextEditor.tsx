@@ -16,12 +16,14 @@ export const TextEditor: React.FC<TextEditorProps> = ({
   scale,
   onCommit,
   onCancel,
+  isEditing = true,
 }) => {
   const { spans, align, lineHeight, transform } = element;
 
   const initialText = spans.map((s) => s.text).join("");
   const [value, setValue] = useState(initialText);
   const editorRef = useRef<HTMLDivElement>(null);
+  const hasSelectedOnceRef = useRef(false);
 
   const baseStyle = spans[0]?.style || {
     fontSize: 20,
@@ -58,16 +60,36 @@ export const TextEditor: React.FC<TextEditorProps> = ({
     e.nativeEvent.stopImmediatePropagation?.();
   };
 
+  // 同步内容并在进入编辑态时抢焦点
   useEffect(() => {
-    editorRef.current?.focus();
-  }, []);
+    const node = editorRef.current;
+    if (!node) return;
 
-  useEffect(() => {
-    if (!editorRef.current) return;
-    if (editorRef.current.innerText !== value) {
-      editorRef.current.innerText = value;
+    // 保证 DOM 中的内容和内部状态一致
+    if (node.innerText !== value) {
+      node.innerText = value;
     }
-  }, [value]);
+
+    // 只要处于编辑状态，就确保光标在文本编辑器上
+    if (isEditing) {
+      // 下一帧再 focus，避免和其他同步事件抢焦点
+      requestAnimationFrame(() => {
+        node.focus();
+
+        // 首次进入编辑时，全选当前文本内容
+        if (!hasSelectedOnceRef.current && typeof window !== "undefined") {
+          const selection = window.getSelection();
+          if (selection) {
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+          hasSelectedOnceRef.current = true;
+        }
+      });
+    }
+  }, [isEditing, value]);
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     setValue(e.currentTarget.innerText);

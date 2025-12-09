@@ -7,6 +7,7 @@ import type {
   CanvasElement,
   ShapeElement,
   ImageElement as ImageElementType,
+  TextElement as TextElementModel,
 } from "../../canvas/schema/model";
 import {
   RectShape,
@@ -71,6 +72,8 @@ interface CanvasViewProps {
     selectedIds: ID[],
     e: React.PointerEvent<Element>
   ) => void;
+  /** 设置当前正在编辑的文本元素 ID（传 null 退出编辑） */
+  onSetEditingElementId?: (id: ID | null) => void;
   /** 注册元素层 DOM 引用回调 */
   onRegisterElementsLayerRef?: (
     ref: React.RefObject<HTMLDivElement | null>
@@ -104,11 +107,13 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   onSelectionBoxPointerDown,
   onRegisterElementsLayerRef,
   onRegisterOverlayLayerRef,
+  onSetEditingElementId,
 }) => {
   const { document, viewport, selection } = state;
   const scale = viewport.scale;
+  const editingElementId = selection.editingElementId ?? null;
 
-  console.log("Document elements before render:", document.elements); // 输出文档元素
+  // console.log("Document elements before render:", document.elements); // 输出文档元素
 
   // 方案D：增强的状态同步监控
   useEffect(() => {
@@ -149,15 +154,12 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   // 是否正在进行编辑操作（拖拽、缩放、旋转）
   const [isEditing, setIsEditing] = useState(false);
 
-  // 正在编辑的元素 ID
-  const [editingElementId, setEditingElementId] = useState<string | null>(null);
-
   // 双击处理函数
   const handleElementDoubleClick = (id: string, e: React.MouseEvent) => {
     // 只有文本类型才允许进入编辑模式
     const el = document.elements[id];
     if (el && el.type === "text") {
-      setEditingElementId(id);
+      onSetEditingElementId?.(id);
       // 双击时可能需要阻止默认选中文本的行为
       e.preventDefault();
     }
@@ -230,7 +232,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     ];
 
     handleUpdateElement(id, { spans: newSpans });
-    setEditingElementId(null);
+    onSetEditingElementId?.(null);
   };
 
   const elementsLayerRef = useRef<HTMLDivElement | null>(null);
@@ -339,11 +341,10 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
     [isDragging, cursor, onElementPointerDown]
   );
 
-  const renderElement = React.useCallback(
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
-    (el: any) => {
-      // 优先检查：是否处于编辑模式？
-      if (el.type === "text" && editingElementId === el.id) {
+  const renderElement = useCallback(
+    (el: CanvasElement) => {
+      // 1. 文本编辑态：渲染 TextEditor，直接可编辑
+      /* if (el.type === "text" && editingElementId === el.id) {
         return (
           <TextEditor
             key={el.id}
@@ -351,37 +352,14 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
             viewport={viewport as ViewportState}
             scale={scale}
             onCommit={(text) => handleTextCommit(el.id, text)}
-            onCancel={() => setEditingElementId(null)}
+            onCancel={() => onSetEditingElementId?.(null)}
             isEditing={true}
           />
         );
-      }
-
-      console.log("Rendering element:", el);
-      const commonProps = {
-        element: el,
-        viewport: viewport as ViewportState,
-        scale,
-        onPointerDown: (e: React.PointerEvent<any>) =>
-          handleShapePointerDown(el.id, e),
-        isHovered: selection.hoveredId === el.id,
-        isSelected: selection.selectedIds.includes(el.id),
-      };
-
-      if (el.type === "shape") {
-        if (el.shape === "rect") {
-          return <RectShape key={el.id} {...commonProps} />;
-        }
-        if (el.shape === "circle") {
-          return <CircleShape key={el.id} {...commonProps} />;
-        }
-        if (el.shape === "triangle") {
-          return <TriangleShape key={el.id} {...commonProps} />;
-        }
-      }
+      } */
 
       try {
-        // 根据元素类型进行类型守卫和正确的属性传递
+        // 3. 形状元素
         if (el.type === "shape") {
           const shapeElement = el as ShapeElement;
           const shapeProps = {
@@ -403,10 +381,12 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           if (shapeElement.shape === "triangle") {
             return <TriangleShape key={el.id} {...shapeProps} />;
           }
-          // 处理未知形状类型
+
           console.warn(`Unknown shape type: ${shapeElement.shape}`);
           return <RectShape key={el.id} {...shapeProps} />;
         }
+
+        // 4. 图片元素
         if (el.type === "image") {
           const imageElement = el as ImageElementType;
           const imageProps = {
@@ -419,22 +399,40 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
           };
           return <ImageElement key={el.id} {...imageProps} />;
         }
+
+        // 5. 普通文本显示态
         if (el.type === "text") {
-          console.log("Rendering text element:", el);
+          const textElement = el as TextElementModel;
           return (
+            selection.editingElementId !== el.id ?
             <TextElement
               key={el.id}
-              {...commonProps}
+              element={textElement}
+              viewport={viewport as ViewportState}
+              scale={scale}
+              onPointerDown={(e) => handleShapePointerDown(el.id, e)}
               onDoubleClick={(e) => handleElementDoubleClick(el.id, e)}
               onMeasuredHeight={handleTextMeasuredHeight}
             />
+             :
+            <TextEditor
+                key={el.id}
+                element={el}
+                viewport={viewport as ViewportState}
+                scale={scale}
+                onCommit={(text) => handleTextCommit(el.id, text)}
+                onCancel={() => onSetEditingElementId?.(null)}
+                isEditing={true}
+            />
           );
         }
-        // 处理未知元素类型
+
+        // 6. 未知类型
         console.warn(`Unknown element type: ${el.type}`);
       } catch (error) {
         console.error(`Error rendering element ${el.id}:`, error);
       }
+
       return null;
     },
     [
@@ -442,13 +440,15 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       scale,
       selection.hoveredId,
       selection.selectedIds,
-      handleShapePointerDown,
       editingElementId,
+      handleShapePointerDown,
       handleTextMeasuredHeight,
+      handleTextCommit,
+      onSetEditingElementId,
     ]
   );
 
-  const renderedElements = React.useMemo(() => {
+  const renderedElements = useMemo(() => {
     // 安全检查：确保rootElementIds是数组
     if (!Array.isArray(document.rootElementIds)) {
       console.error(
@@ -481,7 +481,7 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         return renderElement(el);
       })
       .filter(Boolean); // 过滤掉null值
-  }, [document.rootElementIds, document.elements, renderElement]);
+  }, [document.rootElementIds, document.elements, selection, renderElement]);
 
   const screenToWorld = (
     e: React.PointerEvent<HTMLDivElement> | React.WheelEvent<HTMLDivElement>

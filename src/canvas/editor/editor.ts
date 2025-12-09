@@ -616,7 +616,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
   };
 
   // ─────────────────────────────────────────────────────────────
-  // 文本相关（待实现）
+  // 文本相关
   // ─────────────────────────────────────────────────────────────
 
   /**
@@ -629,12 +629,13 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     // 默认文本片段
     const spans: TextSpan[] = _payload.spans ?? [
       {
-        text: "点击编辑文本", // 默认文本内容
+        // 保持最初工具中的默认占位文案
+        text: "双击编辑文本",
         style: {
           fontFamily: "SimSun",
           fontSize: 20,
           color: "#000000",
-          background: "#ffffff", // 默认背景色（可选）
+          background: "transparent", // 默认背景色（可选）
         },
       },
     ];
@@ -651,7 +652,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       spans, // 文本片段
       align: _payload.align ?? "left", // 默认左对齐
       lineHeight: _payload.lineHeight ?? 1.5, // 默认行高
-      size: _payload.size ?? { width: 240, height: 120  },
+      size: _payload.size ?? { width: 150, height: 150},
       transform: {
         x: _payload.x ?? 0, // 默认放在 (0, 0) 位置
         y: _payload.y ?? 0,
@@ -665,7 +666,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       opacity: 1, // 默认不透明
     };
 
-    console.log("Adding text element:", newTextElement); 
+    // console.log("Adding text element:", newTextElement); 
 
     // 将新的文本元素添加到文档中
     const nextState: CanvasRuntimeState = {
@@ -678,14 +679,13 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
       selection: {
         selectedIds: [id], // 默认选中新添加的元素
+        editingElementId: id
       },
     };
-    
 
     setState(nextState); // 更新状态
 
     return id; // 返回新元素的 ID
-
   };
 
   /**
@@ -904,6 +904,22 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         hoveredId: _id ?? undefined,
       },
     };
+    setState(nextState, { persist: false });
+  };
+
+  /**
+   * 设置当前处于文本编辑模式的元素
+   * @param _id 文本元素 ID，null / undefined 表示退出文本编辑
+   */
+  const setEditingElement: IEditorService["setEditingElement"] = (_id: ID | null) => {
+    const nextState: CanvasRuntimeState = {
+      ...state,
+      selection: {
+        ...state.selection,
+        editingElementId: _id ?? null,
+      },
+    };
+    // 不触发持久化
     setState(nextState, { persist: false });
   };
 
@@ -1224,6 +1240,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     copySelection,
     paste,
     setHovered,
+    setEditingElement,
     hasPersistedState,
     loadPersistedState,
     clearPersistedState,

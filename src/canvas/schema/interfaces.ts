@@ -255,7 +255,19 @@ export interface IEditorService {
     x: number;
     y: number;
     lineHeight: number;
-    spans: { text: string; style: { fontFamily: string; fontSize: number; color: string; background: string; }; }[];
+    /**
+     * 文本片段数组
+     * - 可省略，省略时由实现层使用默认占位文本（例如「双击编辑文本」）
+     */
+    spans?: {
+      text: string;
+      style: {
+        fontFamily: string;
+        fontSize: number;
+        color: string;
+        background: string;
+      };
+    }[];
     /** 初始文本内容 */
     content: string;
     /** 可选的文本样式覆盖字段 */
@@ -323,6 +335,13 @@ export interface IEditorService {
    * @param id 悬停元素 ID，传 null 清除悬停状态
    */
   setHovered(id: ID | null): void;
+
+  /**
+   * 设置当前正在进行文本内容编辑的元素 ID。
+   *
+   * @param id 文本元素 ID，传 null 清除编辑状态
+   */
+  setEditingElement(id: ID | null): void;
 
   // ─────────────────────────────────────────────────────────────
   // 持久化

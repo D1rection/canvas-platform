@@ -409,6 +409,13 @@ export interface SelectionState {
    */
   hoveredId?: ID;
   /**
+   * 当前处于「文本编辑模式」的元素 ID（如果有）
+   *
+   * - 与 selectedIds 不同，用于区分「选中」和「正在编辑文本」
+   * - 进入文本编辑时设置为对应文本元素 ID，退出时置为 null 或 undefined
+   */
+  editingElementId?: ID | null;
+  /**
    * 文本编辑时的活动选区
    *
    * - 仅在编辑文本元素时存在
