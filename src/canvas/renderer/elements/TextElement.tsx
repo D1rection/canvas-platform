@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { type ViewportState, type TextElement as TextElementModel } from "../../schema/model";
+import { ensureFontFamilySupport } from "../../../components/ElementToolbar/TextEditor/utils/textFormatUtils";
 
 interface TextElementProps {
   element: TextElementModel;
@@ -84,7 +85,10 @@ export const TextElement: React.FC<TextElementProps> = ({
           <span
             key={index}
             style={{
-              fontFamily: span.style.fontFamily,
+              fontFamily: ensureFontFamilySupport(span.style.fontFamily, {
+                bold: span.style.bold,
+                italic: span.style.italic,
+              }),
               fontSize: span.style.fontSize * scale,
               color: span.style.color,
               background: span.style.background,
