@@ -153,6 +153,11 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   // 是否正在进行编辑操作（拖拽、缩放、旋转）
   const [isEditing, setIsEditing] = useState(false);
+  // selection 的 ref，用于传给缩放工具做多选缩放
+  const selectionRef = React.useRef(selection);
+  useEffect(() => {
+    selectionRef.current = selection;
+  }, [selection]);
 
   // 双击处理函数
   const handleElementDoubleClick = (id: string, e: React.MouseEvent) => {
@@ -272,16 +277,18 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
       scaleTool.current = new ScaleTool(
         onUpdateElement,
         documentRef,
-        viewportRef
+        viewportRef,
+        selectionRef
       );
     } else {
       scaleTool.current.updateDependencies(
         onUpdateElement,
         documentRef,
-        viewportRef
+        viewportRef,
+        selectionRef
       );
     }
-  }, [document, viewport, onUpdateElement, styles.root]);
+  }, [document, viewport, onUpdateElement, styles.root, selection]);
 
   // 旋转工具已经在上面的useEffect中初始化和更新
 

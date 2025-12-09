@@ -83,7 +83,36 @@ export interface ScaleState {
    * - 仅在 element.type === "text" 时存在
    */
   initialTextFontSizes?: number[];
+  /**
+   * 多选缩放相关信息（当 elementId 为 undefined 且存在多选时使用）
+   */
+  multi?: {
+    /** 参与多选缩放的元素 ID 列表 */
+    elementIds: ID[];
+    /** 初始整体包围框（世界坐标） */
+    bounds: {
+      minX: number;
+      minY: number;
+      maxX: number;
+      maxY: number;
+    };
+    /** 每个元素的初始几何信息 */
+    elements: Array<{
+      id: ID;
+      initialX: number;
+      initialY: number;
+      initialWidth: number;
+      initialHeight: number;
+      center: Point;
+      rotation: number;
+      isText: boolean;
+      textFontSizes?: number[];
+    }>;
+  };
 }
+
+// 多选缩放状态的非空类型，方便在类型层面复用
+type MultiScaleState = NonNullable<ScaleState['multi']>;
 
 /**
  * 缩放工具类，封装了缩放相关的方法和状态管理
@@ -93,6 +122,9 @@ export class ScaleTool {
   private onUpdateElementCallback: ((id: ID, updates: Partial<CanvasElement>) => void) | undefined;
   private documentRef: { current: { elements: Record<ID, CanvasElement> } } | undefined;
   private viewportRef: { current: { x: number; y: number; scale: number } } | undefined;
+  private selectionRef:
+    | { current: { selectedIds: ID[] } }
+    | undefined;
   // 添加缩放结束回调
   public onScaleEnd?: () => void;
 
@@ -105,11 +137,13 @@ export class ScaleTool {
   constructor(
     onUpdateElement?: (id: ID, updates: Partial<CanvasElement>) => void,
     documentRef?: { current: { elements: Record<ID, CanvasElement> } },
-    viewportRef?: { current: { x: number; y: number; scale: number } }
+    viewportRef?: { current: { x: number; y: number; scale: number } },
+    selectionRef?: { current: { selectedIds: ID[] } }
   ) {
     this.onUpdateElementCallback = onUpdateElement;
     this.documentRef = documentRef;
     this.viewportRef = viewportRef;
+    this.selectionRef = selectionRef;
   }
 
   /**
@@ -118,11 +152,13 @@ export class ScaleTool {
   updateDependencies(
     onUpdateElement?: (id: ID, updates: Partial<CanvasElement>) => void,
     documentRef?: { current: { elements: Record<ID, CanvasElement> } },
-    viewportRef?: { current: { x: number; y: number; scale: number } }
+    viewportRef?: { current: { x: number; y: number; scale: number } },
+    selectionRef?: { current: { selectedIds: ID[] } }
   ) {
     if (onUpdateElement !== undefined) this.onUpdateElementCallback = onUpdateElement;
     if (documentRef !== undefined) this.documentRef = documentRef;
     if (viewportRef !== undefined) this.viewportRef = viewportRef;
+    if (selectionRef !== undefined) this.selectionRef = selectionRef;
   }
 
   /**
@@ -137,56 +173,156 @@ export class ScaleTool {
     direction: ScaleDirection,
     e: React.PointerEvent<HTMLElement>
   ): boolean {
-    if (!id || !this.documentRef?.current?.elements[id] || !this.viewportRef?.current || !e) {
+    if (!this.viewportRef?.current || !this.documentRef?.current || !e) {
       return false;
     }
-    
-    const element = this.documentRef.current.elements[id];
-    if (!('size' in element) || !element.transform) {
-      return false;
-    }
-    
-    const { size, transform } = element;
+
+    // 先尝试单元素缩放
+    if (id && this.documentRef.current.elements[id]) {
+      const element = this.documentRef.current.elements[id];
+      if (!('size' in element) || !element.transform) {
+        return false;
+      }
+
+      const { size, transform } = element;
 
     // 计算元素中心点（世界坐标）
-    const elementCenter: Point = {
-      x: transform.x + size.width / 2,
-      y: transform.y + size.height / 2,
-    };
+      const elementCenter: Point = {
+        x: transform.x + size.width / 2,
+        y: transform.y + size.height / 2,
+      };
 
     // 计算当前缩放方向对应的锚点（本地坐标，以几何中心为原点）
-    const anchorLocal = getAnchorLocal(size.width, size.height, direction);
-    const rotation = transform.rotation || 0;
-    const rad = (rotation * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
+      const anchorLocal = getAnchorLocal(size.width, size.height, direction);
+      const rotation = transform.rotation || 0;
+      const rad = (rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
 
     // 将锚点从本地坐标转换到世界坐标，后续缩放过程中保持该点不动
-    const anchorWorld: Point = {
-      x: elementCenter.x + anchorLocal.x * cos - anchorLocal.y * sin,
-      y: elementCenter.y + anchorLocal.x * sin + anchorLocal.y * cos,
-    };
-    
-    // 记录缩放起始状态
-    this.scaleState = {
-      isScaling: true,
-      elementId: id,
-      direction,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      initialWidth: size.width,
-      initialHeight: size.height,
-      initialX: transform.x,
-      initialY: transform.y,
-      elementCenter,
-      aspectRatio: size.height !== 0 ? size.width / size.height : 1,
-      keepAspect: !!e.shiftKey,
-      anchorWorld,
-      initialTextFontSizes:
-        element.type === "text"
-          ? (element as TextElement).spans.map((span) => span.style.fontSize)
-          : undefined,
-    };
+      const anchorWorld: Point = {
+        x: elementCenter.x + anchorLocal.x * cos - anchorLocal.y * sin,
+        y: elementCenter.y + anchorLocal.x * sin + anchorLocal.y * cos,
+      };
+      
+      // 记录缩放起始状态（单元素）
+      this.scaleState = {
+        isScaling: true,
+        elementId: id,
+        direction,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        initialWidth: size.width,
+        initialHeight: size.height,
+        initialX: transform.x,
+        initialY: transform.y,
+        elementCenter,
+        aspectRatio: size.height !== 0 ? size.width / size.height : 1,
+        keepAspect: !!e.shiftKey,
+        anchorWorld,
+        initialTextFontSizes:
+          element.type === "text"
+            ? (element as TextElement).spans.map((span) => span.style.fontSize)
+            : undefined,
+      };
+    } else {
+      // 多选缩放：id 为 undefined，且有多个选中元素
+      const selectedIds = this.selectionRef?.current?.selectedIds || [];
+      const validIds = selectedIds.filter(
+        (sid) => !!this.documentRef!.current.elements[sid]
+      );
+      if (validIds.length <= 1) {
+        return false;
+      }
+
+      const elements = validIds
+        .map((sid) => this.documentRef!.current.elements[sid])
+        .filter(
+          (el): el is CanvasElement & { size: { width: number; height: number } } =>
+            !!el && "size" in el && !!el.transform
+        );
+      if (!elements.length) return false;
+
+      // 计算初始整体包围框（世界坐标，忽略旋转，使用轴对齐包围）
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      const elementInfos: MultiScaleState['elements'] = [];
+
+      for (const el of elements) {
+        const { size, transform } = el as any;
+        const w = size.width;
+        const h = size.height;
+        const x = transform.x;
+        const y = transform.y;
+
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x + w);
+        maxY = Math.max(maxY, y + h);
+
+        elementInfos.push({
+          id: el.id,
+          initialX: x,
+          initialY: y,
+          initialWidth: w,
+          initialHeight: h,
+          center: {
+            x: x + w / 2,
+            y: y + h / 2,
+          },
+          rotation: transform.rotation || 0,
+          isText: el.type === "text",
+          textFontSizes:
+            el.type === "text"
+              ? (el as TextElement).spans.map((span) => span.style.fontSize)
+              : undefined,
+        });
+      }
+
+      if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) {
+        return false;
+      }
+
+      const groupWidth = maxX - minX;
+      const groupHeight = maxY - minY;
+      if (groupWidth <= 0 || groupHeight <= 0) {
+        return false;
+      }
+
+      // 以 group 的包围框为基准构造 anchorWorld
+      const groupCenter: Point = {
+        x: minX + groupWidth / 2,
+        y: minY + groupHeight / 2,
+      };
+      const anchorLocalGroup = getAnchorLocal(groupWidth, groupHeight, direction);
+      const anchorWorld: Point = {
+        x: groupCenter.x + anchorLocalGroup.x,
+        y: groupCenter.y + anchorLocalGroup.y,
+      };
+
+      this.scaleState = {
+        isScaling: true,
+        elementId: undefined,
+        direction,
+        startClientX: e.clientX,
+        startClientY: e.clientY,
+        initialWidth: groupWidth,
+        initialHeight: groupHeight,
+        initialX: minX,
+        initialY: minY,
+        elementCenter: groupCenter,
+        aspectRatio: groupHeight !== 0 ? groupWidth / groupHeight : 1,
+        keepAspect: !!e.shiftKey,
+        anchorWorld,
+        multi: {
+          elementIds: validIds,
+          bounds: { minX, minY, maxX, maxY },
+          elements: elementInfos,
+        },
+      };
+    }
     
     // 防止默认行为和冒泡
     e.preventDefault();
@@ -239,13 +375,18 @@ export class ScaleTool {
    * @param e 指针事件
    */
   private handleGlobalPointerMove(e: PointerEvent): void {
-    if (!this.scaleState || !this.scaleState.isScaling || !this.scaleState.elementId ||
-        !this.documentRef?.current || !this.viewportRef?.current || !this.onUpdateElementCallback) {
+    const callback = this.onUpdateElementCallback;
+    if (
+      !this.scaleState ||
+      !this.scaleState.isScaling ||
+      !this.documentRef?.current ||
+      !this.viewportRef?.current ||
+      !callback
+    ) {
       return;
     }
 
     const {
-      elementId,
       direction,
       startClientX,
       startClientY,
@@ -256,14 +397,145 @@ export class ScaleTool {
       aspectRatio,
       keepAspect,
       anchorWorld,
+      multi,
     } = this.scaleState;
 
-    const element = this.documentRef.current.elements[elementId];
-    if (!element || !('size' in element) || !element.transform) {
+    const scale = this.viewportRef.current?.scale || 1;
+
+    // 计算在世界坐标系下的位移增量
+    const worldDeltaX = (e.clientX - startClientX) / scale;
+    const worldDeltaY = (e.clientY - startClientY) / scale;
+
+    // 统一的最小尺寸限制，避免出现 0 或负尺寸
+    const MIN_SIZE = 10;
+
+    // 多选缩放
+    if (multi) {
+      let newGroupWidth = initialWidth;
+      let newGroupHeight = initialHeight;
+
+      // 多选的 group 按世界坐标缩放（不考虑旋转）
+      switch (direction) {
+        case ScaleDirection.TOP_LEFT:
+          newGroupWidth = initialWidth - worldDeltaX;
+          newGroupHeight = initialHeight - worldDeltaY;
+          if (keepAspect) {
+            if (Math.abs(worldDeltaX) > Math.abs(worldDeltaY)) {
+              newGroupHeight = newGroupWidth / aspectRatio;
+            } else {
+              newGroupWidth = newGroupHeight * aspectRatio;
+            }
+          }
+          break;
+        case ScaleDirection.TOP_RIGHT:
+          newGroupWidth = initialWidth + worldDeltaX;
+          newGroupHeight = initialHeight - worldDeltaY;
+          if (keepAspect) {
+            if (Math.abs(worldDeltaX) > Math.abs(worldDeltaY)) {
+              newGroupHeight = newGroupWidth / aspectRatio;
+            } else {
+              newGroupWidth = newGroupHeight * aspectRatio;
+            }
+          }
+          break;
+        case ScaleDirection.BOTTOM_LEFT:
+          newGroupWidth = initialWidth - worldDeltaX;
+          newGroupHeight = initialHeight + worldDeltaY;
+          if (keepAspect) {
+            if (Math.abs(worldDeltaX) > Math.abs(worldDeltaY)) {
+              newGroupHeight = newGroupWidth / aspectRatio;
+            } else {
+              newGroupWidth = newGroupHeight * aspectRatio;
+            }
+          }
+          break;
+        case ScaleDirection.BOTTOM_RIGHT:
+          newGroupWidth = initialWidth + worldDeltaX;
+          newGroupHeight = initialHeight + worldDeltaY;
+          if (keepAspect) {
+            if (Math.abs(worldDeltaX) > Math.abs(worldDeltaY)) {
+              newGroupHeight = newGroupWidth / aspectRatio;
+            } else {
+              newGroupWidth = newGroupHeight * aspectRatio;
+            }
+          }
+          break;
+        case ScaleDirection.TOP:
+          newGroupHeight = initialHeight - worldDeltaY;
+          break;
+        case ScaleDirection.BOTTOM:
+          newGroupHeight = initialHeight + worldDeltaY;
+          break;
+        case ScaleDirection.LEFT:
+          newGroupWidth = initialWidth - worldDeltaX;
+          break;
+        case ScaleDirection.RIGHT:
+          newGroupWidth = initialWidth + worldDeltaX;
+          break;
+      }
+
+      // 限制 group 尺寸，避免 0 或负值
+      newGroupWidth = Math.max(MIN_SIZE, newGroupWidth);
+      newGroupHeight = Math.max(MIN_SIZE, newGroupHeight);
+
+      // 计算 group 缩放因子
+      const sx = newGroupWidth / initialWidth;
+      const sy = newGroupHeight / initialHeight;
+
+      // 按 group 的锚点缩放每个元素的位置与尺寸
+      for (const info of multi.elements) {
+        const element = this.documentRef.current.elements[info.id];
+        if (!element || !("size" in element) || !element.transform) continue;
+
+        // 以 anchorWorld 为缩放中心，缩放元素中心位置
+        const dx = info.center.x - anchorWorld.x;
+        const dy = info.center.y - anchorWorld.y;
+
+        const newCenter: Point = {
+          x: anchorWorld.x + dx * sx,
+          y: anchorWorld.y + dy * sy,
+        };
+
+        let newWidth = info.initialWidth * Math.abs(sx);
+        let newHeight = info.initialHeight * Math.abs(sy);
+
+        newWidth = Math.max(MIN_SIZE, newWidth);
+        newHeight = Math.max(MIN_SIZE, newHeight);
+
+        const newX = newCenter.x - newWidth / 2;
+        const newY = newCenter.y - newHeight / 2;
+
+        const updates: Partial<CanvasElement> = {
+          transform: {
+            ...element.transform,
+            x: newX,
+            y: newY,
+          },
+          size: {
+            width: newWidth,
+            height: newHeight,
+          },
+        };
+
+        // 多选缩放时，暂不自动调整文本字号，避免复杂的多文本联动场景
+
+        callback(info.id, updates);
+      }
+
       return;
     }
 
-    const scale = this.viewportRef.current?.scale || 1;
+    // 单元素缩放逻辑（原有逻辑）
+    const elementId = this.scaleState.elementId;
+    if (!elementId) {
+      return;
+    }
+
+    const element = this.documentRef.current.elements[elementId];
+    if (!element || !("size" in element) || !element.transform) {
+      return;
+    }
+
     const isTextElement = element.type === "text";
     const isCornerDirection =
       direction === ScaleDirection.TOP_LEFT ||
@@ -272,11 +544,8 @@ export class ScaleTool {
       direction === ScaleDirection.BOTTOM_RIGHT;
 
     // 文本元素在四角缩放时，始终保持等比缩放，避免文字被拉伸变形
-    const keepAspectEffective = keepAspect || (isTextElement && isCornerDirection);
-
-    // 计算在世界坐标系下的位移增量
-    const worldDeltaX = (e.clientX - startClientX) / scale;
-    const worldDeltaY = (e.clientY - startClientY) / scale;
+    const keepAspectEffective =
+      keepAspect || (isTextElement && isCornerDirection);
 
     // 将位移增量投影到元素本地坐标系（考虑旋转）
     // 这样即便元素被旋转，缩放依然沿着元素自身的水平/垂直方向进行
@@ -286,16 +555,13 @@ export class ScaleTool {
     const sin = Math.sin(rad);
 
     // 本地坐标中的增量（右为正，下为正）
-    const deltaX =  cos * worldDeltaX + sin * worldDeltaY;
+    const deltaX = cos * worldDeltaX + sin * worldDeltaY;
     const deltaY = -sin * worldDeltaX + cos * worldDeltaY;
 
     let newWidth = initialWidth;
     let newHeight = initialHeight;
     let newX = initialX;
     let newY = initialY;
-
-    // 统一的最小尺寸限制，避免出现 0 或负尺寸
-    const MIN_SIZE = 10;
 
     // 根据缩放方向计算新的尺寸和位置
     // 约定：四个角的控制点以对角为锚点（缩放中心）
@@ -311,8 +577,6 @@ export class ScaleTool {
             newWidth = newHeight * aspectRatio;
           }
         }
-        newWidth = Math.max(MIN_SIZE, newWidth);
-        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
 
       case ScaleDirection.TOP_RIGHT:
@@ -326,8 +590,6 @@ export class ScaleTool {
             newWidth = newHeight * aspectRatio;
           }
         }
-        newWidth = Math.max(MIN_SIZE, newWidth);
-        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
 
       case ScaleDirection.BOTTOM_LEFT:
@@ -341,8 +603,6 @@ export class ScaleTool {
             newWidth = newHeight * aspectRatio;
           }
         }
-        newWidth = Math.max(MIN_SIZE, newWidth);
-        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
 
       case ScaleDirection.BOTTOM_RIGHT:
@@ -356,34 +616,35 @@ export class ScaleTool {
             newWidth = newHeight * aspectRatio;
           }
         }
-        newWidth = Math.max(MIN_SIZE, newWidth);
-        newHeight = Math.max(MIN_SIZE, newHeight);
         break;
 
       case ScaleDirection.TOP:
         // TOP中点：垂直拉伸，保持宽度不变，保持底部位置不变
-        newHeight = Math.max(MIN_SIZE, initialHeight - deltaY);
+        newHeight = initialHeight - deltaY;
         newWidth = initialWidth; // 保持宽度不变
         break;
 
       case ScaleDirection.RIGHT:
         // RIGHT中点：水平拉伸，保持高度不变，保持左侧位置不变
-        newWidth = Math.max(MIN_SIZE, initialWidth + deltaX);
+        newWidth = initialWidth + deltaX;
         newHeight = initialHeight; // 保持高度不变
         break;
 
       case ScaleDirection.BOTTOM:
         // BOTTOM中点：垂直拉伸，保持宽度不变，保持顶部位置不变
-        newHeight = Math.max(MIN_SIZE, initialHeight + deltaY);
+        newHeight = initialHeight + deltaY;
         newWidth = initialWidth; // 保持宽度不变
         break;
 
       case ScaleDirection.LEFT:
         // LEFT中点：水平拉伸，保持高度不变，保持右侧位置不变
-        newWidth = Math.max(MIN_SIZE, initialWidth - deltaX);
+        newWidth = initialWidth - deltaX;
         newHeight = initialHeight; // 保持高度不变
         break;
     }
+
+    newWidth = Math.max(MIN_SIZE, newWidth);
+    newHeight = Math.max(MIN_SIZE, newHeight);
 
     // 重新根据「固定锚点」计算新的元素位置（transform.x/y）
     // 目标：缩放前后，anchorWorld 在世界坐标中保持不变
@@ -395,7 +656,7 @@ export class ScaleTool {
 
     newX = centerWorldNew.x - newWidth / 2;
     newY = centerWorldNew.y - newHeight / 2;
-    
+
     // 组装通用更新字段（位置 + 尺寸）
     const updates: Partial<CanvasElement> = {
       transform: {
@@ -440,9 +701,7 @@ export class ScaleTool {
     }
 
     // 确保回调函数存在并执行更新
-    if (this.onUpdateElementCallback) {
-      this.onUpdateElementCallback(elementId, updates);
-    }
+    callback(elementId, updates);
   }
   
   // 保存事件监听器引用，以便正确移除
