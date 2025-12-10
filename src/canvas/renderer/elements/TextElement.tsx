@@ -92,11 +92,14 @@ export const TextElement: React.FC<TextElementProps> = ({
             textDecoration: span.style.decorations?.join(" "),
           };
 
-          // 如果是斜体，添加斜体增强样式
+          // 如果是斜体，统一使用 CSS transform 来实现一致的倾斜
+          // 不再使用 fontStyle: "italic"，因为不同字体的斜体倾斜程度不同
           const italicStyle: React.CSSProperties = span.style.italic ? {
-            fontStyle: "italic",
+            // 关键修改：不再使用 fontStyle: "italic"
+            // fontStyle: "normal", // 明确设置为 normal，防止浏览器应用默认斜体
             display: "inline-block",
-            transform: "skewX(-10deg)",
+            // 增大倾斜角度到 -15deg，获得更明显的斜体效果
+            transform: "skewX(-15deg)",
             transformOrigin: "center",
           } : {};
 
