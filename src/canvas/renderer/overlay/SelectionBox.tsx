@@ -171,6 +171,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
   return (
     <div
       data-selection-box="single"
+      data-element-id={id}
       style={{
         position: "absolute",
         left,

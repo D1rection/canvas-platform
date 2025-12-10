@@ -129,6 +129,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
   return (
     <div
       data-selection-box="text"
+      data-element-id={id}
       style={{
         position: "absolute",
         left,

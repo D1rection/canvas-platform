@@ -119,7 +119,9 @@ type MultiScaleState = NonNullable<ScaleState['multi']>;
  */
 export class ScaleTool {
   private scaleState: ScaleState | null = null;
-  private onUpdateElementCallback: ((id: ID, updates: Partial<CanvasElement>) => void) | undefined;
+  private onUpdateElementCallback:
+    | ((id: ID, updates: Partial<CanvasElement>) => void)
+    | undefined;
   private documentRef: { current: { elements: Record<ID, CanvasElement> } } | undefined;
   private viewportRef: { current: { x: number; y: number; scale: number } } | undefined;
   private selectionRef:
@@ -127,6 +129,16 @@ export class ScaleTool {
     | undefined;
   // 添加缩放结束回调
   public onScaleEnd?: () => void;
+
+  // DOM 预览：记录最后一次计算出来的更新，鼠标松开时一次性写入状态
+  private lastSinglePreview:
+    | {
+        id: ID;
+        updates: Partial<CanvasElement>;
+      }
+    | null = null;
+
+  private lastMultiPreview: Map<ID, Partial<CanvasElement>> | null = null;
 
   /**
    * 初始化缩放工具
@@ -144,6 +156,110 @@ export class ScaleTool {
     this.documentRef = documentRef;
     this.viewportRef = viewportRef;
     this.selectionRef = selectionRef;
+  }
+
+  /**
+   * 将元素的新几何信息直接应用到 DOM，用于缩放过程中的即时预览
+   * - 不修改文档 state，只操作带 data-id 的根节点
+   */
+  private applyElementPreview(
+    id: ID,
+    newX: number,
+    newY: number,
+    newWidth: number,
+    newHeight: number,
+  ): void {
+    if (!this.viewportRef?.current) return;
+    const { x: vx, y: vy, scale } = this.viewportRef.current;
+
+    const screenX = (newX - vx) * scale;
+    const screenY = (newY - vy) * scale;
+    const screenW = newWidth * scale;
+    const screenH = newHeight * scale;
+
+    const el = document.querySelector<HTMLElement>(`[data-id="${id}"]`);
+    if (!el) return;
+
+    const style = el.style;
+    style.left = `${screenX}px`;
+    style.top = `${screenY}px`;
+    style.width = `${screenW}px`;
+    style.height = `${screenH}px`;
+
+    // 同步更新对应的单选 / 文本选框（如果存在）
+    const selectorSuffix = `[data-element-id="${id}"]`;
+    const singleBox = document.querySelector<HTMLElement>(
+      `[data-selection-box="single"]${selectorSuffix}`,
+    );
+    if (singleBox) {
+      const boxStyle = singleBox.style;
+      boxStyle.left = `${screenX}px`;
+      boxStyle.top = `${screenY}px`;
+      boxStyle.width = `${screenW}px`;
+      boxStyle.height = `${screenH}px`;
+    }
+
+    const textBox = document.querySelector<HTMLElement>(
+      `[data-selection-box="text"]${selectorSuffix}`,
+    );
+    if (textBox) {
+      const boxStyle = textBox.style;
+      boxStyle.left = `${screenX}px`;
+      boxStyle.top = `${screenY}px`;
+      boxStyle.width = `${screenW}px`;
+      boxStyle.height = `${screenH}px`;
+    }
+  }
+
+  /**
+   * 文本元素预览：根据新的 spans 数据，直接修改 DOM span 的 font-size
+   * - 不依赖 React 重新渲染，纯 DOM 预览
+   */
+  private applyTextFontPreview(id: ID, spans: TextElement["spans"]): void {
+    if (!this.viewportRef?.current) return;
+    const viewportScale = this.viewportRef.current.scale || 1;
+
+    const root = document.querySelector<HTMLElement>(`[data-id="${id}"]`);
+    if (!root) return;
+
+    const spanNodes = root.querySelectorAll<HTMLElement>("span");
+    spans.forEach((span, index) => {
+      const node = spanNodes[index];
+      if (!node) return;
+      const logicalSize = span.style.fontSize;
+      if (!logicalSize || !isFinite(logicalSize)) return;
+      const pixelSize = logicalSize * viewportScale;
+      node.style.fontSize = `${pixelSize}px`;
+    });
+  }
+
+  /**
+   * 多选时更新大选框（MultiSelectionBox）的 DOM 预览
+   */
+  private applyMultiSelectionPreview(
+    groupMinX: number,
+    groupMinY: number,
+    groupWidth: number,
+    groupHeight: number,
+  ): void {
+    if (!this.viewportRef?.current) return;
+    const { x: vx, y: vy, scale } = this.viewportRef.current;
+
+    const left = (groupMinX - vx) * scale;
+    const top = (groupMinY - vy) * scale;
+    const width = groupWidth * scale;
+    const height = groupHeight * scale;
+
+    const box = document.querySelector<HTMLElement>(
+      '[data-selection-box="true"]',
+    );
+    if (!box) return;
+
+    const style = box.style;
+    style.left = `${left}px`;
+    style.top = `${top}px`;
+    style.width = `${width}px`;
+    style.height = `${height}px`;
   }
 
   /**
@@ -176,6 +292,10 @@ export class ScaleTool {
     if (!this.viewportRef?.current || !this.documentRef?.current || !e) {
       return false;
     }
+
+    // 每次开始缩放时，清空上一次的预览记录
+    this.lastSinglePreview = null;
+    this.lastMultiPreview = null;
 
     // 先尝试单元素缩放
     if (id && this.documentRef.current.elements[id]) {
@@ -375,13 +495,11 @@ export class ScaleTool {
    * @param e 指针事件
    */
 	  private handleGlobalPointerMove(e: PointerEvent): void {
-    const callback = this.onUpdateElementCallback;
     if (
       !this.scaleState ||
       !this.scaleState.isScaling ||
       !this.documentRef?.current ||
-      !this.viewportRef?.current ||
-      !callback
+      !this.viewportRef?.current
     ) {
       return;
     }
@@ -409,8 +527,8 @@ export class ScaleTool {
     // 统一的最小尺寸限制，避免出现 0 或负尺寸
     const MIN_SIZE = 10;
 
-	    // 多选缩放
-	    if (multi) {
+    // 多选缩放
+    if (multi) {
       let newGroupWidth = initialWidth;
       let newGroupHeight = initialHeight;
 
@@ -478,85 +596,154 @@ export class ScaleTool {
       newGroupWidth = Math.max(MIN_SIZE, newGroupWidth);
       newGroupHeight = Math.max(MIN_SIZE, newGroupHeight);
 
-	      // 计算 group 缩放因子
-	      const sx = newGroupWidth / initialWidth;
-	      const sy = newGroupHeight / initialHeight;
+      // 计算 group 缩放因子
+      const sx = newGroupWidth / initialWidth;
+      const sy = newGroupHeight / initialHeight;
 
-	      // 多选时：按 group 的锚点缩放每个元素的位置与尺寸
-	      for (const info of multi.elements) {
-	        const element = this.documentRef.current.elements[info.id];
-	        if (!element || !("size" in element) || !element.transform) continue;
+      // 准备记录本次多选的 DOM 预览结果
+      this.lastMultiPreview = new Map<ID, Partial<CanvasElement>>();
 
-	        // 以 anchorWorld 为缩放中心，缩放元素中心位置
-	        const dx = info.center.x - anchorWorld.x;
-	        const dy = info.center.y - anchorWorld.y;
+      // 为了让「大选框」的 DOM 预览行为与以前（无 DOM 预览时）一致，
+      // 这里按 SelectionOverlay 中的 calculateBoundingRect 的方式，
+      // 基于缩放后的元素几何重新计算一次整体包围盒。
+      let previewMinX = Infinity;
+      let previewMinY = Infinity;
+      let previewMaxX = -Infinity;
+      let previewMaxY = -Infinity;
 
-	        const newCenter: Point = {
-	          x: anchorWorld.x + dx * sx,
-	          y: anchorWorld.y + dy * sy,
-	        };
+      // 多选时：按 group 的锚点缩放每个元素的位置与尺寸
+      for (const info of multi.elements) {
+        const element = this.documentRef.current.elements[info.id];
+        if (!element || !("size" in element) || !element.transform) continue;
 
-	        let newWidth = info.initialWidth * Math.abs(sx);
-	        let newHeight = info.initialHeight * Math.abs(sy);
+        // 以 anchorWorld 为缩放中心，缩放元素中心位置
+        const dx = info.center.x - anchorWorld.x;
+        const dy = info.center.y - anchorWorld.y;
 
-	        newWidth = Math.max(MIN_SIZE, newWidth);
-	        newHeight = Math.max(MIN_SIZE, newHeight);
+        const newCenter: Point = {
+          x: anchorWorld.x + dx * sx,
+          y: anchorWorld.y + dy * sy,
+        };
 
-	        const newX = newCenter.x - newWidth / 2;
-	        const newY = newCenter.y - newHeight / 2;
+        let newWidth = info.initialWidth * Math.abs(sx);
+        let newHeight = info.initialHeight * Math.abs(sy);
 
-	        const updates: Partial<CanvasElement> = {
-	          transform: {
-	            ...element.transform,
-	            x: newX,
-	            y: newY,
-	          },
-	          size: {
-	            width: newWidth,
-	            height: newHeight,
-	          },
-	        };
+        newWidth = Math.max(MIN_SIZE, newWidth);
+        newHeight = Math.max(MIN_SIZE, newHeight);
 
-	        // 文本元素：多选时在四角缩放也支持字号缩放（近似处理）
-	        const isTextElement = info.isText;
-	        const isCornerDirection =
-	          direction === ScaleDirection.TOP_LEFT ||
-	          direction === ScaleDirection.TOP_RIGHT ||
-	          direction === ScaleDirection.BOTTOM_LEFT ||
-	          direction === ScaleDirection.BOTTOM_RIGHT;
+        const newX = newCenter.x - newWidth / 2;
+        const newY = newCenter.y - newHeight / 2;
 
-	        if (
-	          isTextElement &&
-	          isCornerDirection &&
-	          info.textFontSizes &&
-	          info.textFontSizes.length > 0
-	        ) {
-	          const textElement = element as TextElement;
-	          // 使用水平方向缩放因子近似字号缩放比例
-	          const fontScale = Math.abs(sx) || 1;
+        const updates: Partial<CanvasElement> = {
+          transform: {
+            ...element.transform,
+            x: newX,
+            y: newY,
+          },
+          size: {
+            width: newWidth,
+            height: newHeight,
+          },
+        };
 
-	          const newSpans = textElement.spans.map((span, index) => {
-	            const initialFontSize =
-	              info.textFontSizes?.[index] ?? span.style.fontSize;
-	            const scaledSize = initialFontSize * fontScale;
-	            const clampedSize = Math.min(
-	              MAX_FONT_SIZE,
-	              Math.max(MIN_FONT_SIZE, scaledSize)
-	            );
-	            return {
-	              ...span,
-	              style: {
-	                ...span.style,
-	                fontSize: clampedSize,
-	              },
-	            };
-	          });
+        // 文本元素：多选时在四角缩放也支持字号缩放（近似处理）
+        const isTextElement = info.isText;
+        const isCornerDirection =
+          direction === ScaleDirection.TOP_LEFT ||
+          direction === ScaleDirection.TOP_RIGHT ||
+          direction === ScaleDirection.BOTTOM_LEFT ||
+          direction === ScaleDirection.BOTTOM_RIGHT;
 
-	          (updates as Partial<TextElement>).spans = newSpans;
-	        }
+        if (
+          isTextElement &&
+          isCornerDirection &&
+          info.textFontSizes &&
+          info.textFontSizes.length > 0
+        ) {
+          const textElement = element as TextElement;
+          // 使用水平方向缩放因子近似字号缩放比例
+          const fontScale = Math.abs(sx) || 1;
 
-	        callback(info.id, updates);
-	      }
+          const newSpans = textElement.spans.map((span, index) => {
+            const initialFontSize =
+              info.textFontSizes?.[index] ?? span.style.fontSize;
+            const scaledSize = initialFontSize * fontScale;
+            const clampedSize = Math.min(
+              MAX_FONT_SIZE,
+              Math.max(MIN_FONT_SIZE, scaledSize)
+            );
+            return {
+              ...span,
+              style: {
+                ...span.style,
+                fontSize: clampedSize,
+              },
+            };
+          });
+
+          (updates as Partial<TextElement>).spans = newSpans;
+
+          // DOM 预览：同步更新文本 DOM 的 font-size
+          this.applyTextFontPreview(info.id, newSpans);
+        }
+
+        // 记录预览结果，并直接改 DOM 做预览，不改状态
+        this.lastMultiPreview!.set(info.id, updates);
+        this.applyElementPreview(info.id, newX, newY, newWidth, newHeight);
+
+        // 使用与 SelectionOverlay.calculateBoundingRect 相同的思路，
+        // 基于当前预览后的几何计算四个角点，再求整体包围盒
+        const rotation = element.transform.rotation || 0;
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const scaleX = (element.transform as any).scaleX ?? 1;
+        const scaleY = (element.transform as any).scaleY ?? 1;
+
+        const scaledWidth = newWidth * scaleX;
+        const scaledHeight = newHeight * scaleY;
+        const centerX = scaledWidth / 2;
+        const centerY = scaledHeight / 2;
+
+        const localCorners = [
+          { x: 0, y: 0 },
+          { x: newWidth, y: 0 },
+          { x: newWidth, y: newHeight },
+          { x: 0, y: newHeight },
+        ];
+
+        for (const corner of localCorners) {
+          // 先应用缩放
+          const cx = corner.x * scaleX;
+          const cy = corner.y * scaleY;
+
+          // 平移到以中心为原点
+          const relativeX = cx - centerX;
+          const relativeY = cy - centerY;
+
+          // 旋转
+          const rotatedX = relativeX * cos - relativeY * sin;
+          const rotatedY = relativeX * sin + relativeY * cos;
+
+          // 再平移回世界坐标
+          const worldX = newX + centerX + rotatedX;
+          const worldY = newY + centerY + rotatedY;
+
+          previewMinX = Math.min(previewMinX, worldX);
+          previewMinY = Math.min(previewMinY, worldY);
+          previewMaxX = Math.max(previewMaxX, worldX);
+          previewMaxY = Math.max(previewMaxY, worldY);
+        }
+      }
+
+      // 预览大选框：基于预览后的元素几何计算出来的包围盒
+      if (isFinite(previewMinX) && isFinite(previewMinY) && isFinite(previewMaxX) && isFinite(previewMaxY)) {
+        const groupMinX = previewMinX;
+        const groupMinY = previewMinY;
+        const groupWidth = previewMaxX - previewMinX;
+        const groupHeight = previewMaxY - previewMinY;
+        this.applyMultiSelectionPreview(groupMinX, groupMinY, groupWidth, groupHeight);
+      }
 
       return;
     }
@@ -706,7 +893,7 @@ export class ScaleTool {
       },
     };
 
-    // 文本元素在四角缩放时，同步按比例调整字号
+    // 文本元素在四角缩放时，同步按比例调整字号（状态 + DOM 预览）
     if (
       isTextElement &&
       isCornerDirection &&
@@ -734,20 +921,32 @@ export class ScaleTool {
       });
 
       (updates as Partial<TextElement>).spans = newSpans;
+
+      // DOM 预览：同步更新文本 DOM 的 font-size
+      this.applyTextFontPreview(elementId, newSpans);
     }
 
-    // 确保回调函数存在并执行更新
-    callback(elementId, updates);
+    // 记录单元素预览结果，并通过 DOM 做即时预览
+    this.lastSinglePreview = { id: elementId, updates };
+    this.applyElementPreview(elementId, newX, newY, newWidth, newHeight);
   }
   
   // 保存事件监听器引用，以便正确移除
   private moveListener: ((e: PointerEvent) => void) | null = null;
   private upListener: ((e: PointerEvent) => void) | null = null;
 
-  /**
+	  /**
    * 处理全局鼠标松开事件（用于结束缩放操作）
    */
   private handleGlobalPointerUp(): void {
+    const callback = this.onUpdateElementCallback;
+    const singlePreview = this.lastSinglePreview;
+    const multiPreview = this.lastMultiPreview;
+
+    // 清空预览缓存，防止残留
+    this.lastSinglePreview = null;
+    this.lastMultiPreview = null;
+
     // 清理缩放状态
     this.scaleState = null;
     
@@ -764,6 +963,17 @@ export class ScaleTool {
     
     // 恢复鼠标样式为默认状态
     document.body.style.cursor = '';
+    
+    // 在鼠标松开时，将最后一次 DOM 预览的结果一次性写入状态
+    if (callback) {
+      if (multiPreview && multiPreview.size > 0) {
+        multiPreview.forEach((updates, id) => {
+          callback(id, updates);
+        });
+      } else if (singlePreview) {
+        callback(singlePreview.id, singlePreview.updates);
+      }
+    }
     
     // 触发缩放结束回调
     if (this.onScaleEnd) {

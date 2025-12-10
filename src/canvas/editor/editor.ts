@@ -131,14 +131,16 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
    */
   const setState = (
     nextState: CanvasRuntimeState,
-    options?: { persist?: boolean, description?: string },
+    options?: { persist?: boolean; description?: string; recordHistory?: boolean },
   ) => {
     if (nextState === state) {
       return;
     }
     
-    // 如果不是撤销/重做操作，记录历史
-    if (!isUndoRedoOperation) {
+    const shouldRecordHistory = options?.recordHistory ?? true;
+
+    // 如果不是撤销/重做操作，且允许记录历史，则入栈
+    if (!isUndoRedoOperation && shouldRecordHistory) {
       // 保存当前状态到历史栈
       historyStack.push({
         state: JSON.parse(JSON.stringify(state)), // 深拷贝当前状态
@@ -179,8 +181,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       ...state,
       viewport: _viewport,
     };
-    // 不触发持久化
-    setState(nextState, { persist: false });
+    // 不触发持久化，也不进入历史记录
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -196,8 +198,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         y: state.viewport.y + _delta.y,
       },
     };
-    // 不触发持久化
-    setState(nextState, { persist: false });
+    // 不触发持久化，也不进入历史记录
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -212,8 +214,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         scale: 1,
       },
     };
-    // 不触发持久化
-    setState(nextState, { persist: false });
+    // 不触发持久化，也不进入历史记录
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -256,8 +258,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
     };
 
-    // 不触发持久化
-    setState(nextState, { persist: false });
+    // 不触发持久化，也不进入历史记录
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -904,7 +906,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         hoveredId: _id ?? undefined,
       },
     };
-    setState(nextState, { persist: false });
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -919,8 +921,8 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         editingElementId: _id ?? null,
       },
     };
-    // 不触发持久化
-    setState(nextState, { persist: false });
+    // 不触发持久化，也不进入历史记录
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   // ─────────────────────────────────────────────────────────────
@@ -1112,7 +1114,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         endPoint: _startPoint,
       },
     };
-    setState(nextState, { persist: false });
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -1132,7 +1134,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
         endPoint: _currentPoint,
       },
     };
-    setState(nextState, { persist: false });
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   /**
@@ -1157,7 +1159,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
     // 最小框选阈值
     if (marqueeRect.width < 5 || marqueeRect.height < 5) {
       const nextState = { ...state, marqueeSelection: null };
-      setState(nextState, { persist: false });
+      setState(nextState, { persist: false, recordHistory: false });
       return [];
     }
 
@@ -1196,7 +1198,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       },
       marqueeSelection: null,
     };
-    setState(nextState, { persist: false });
+    setState(nextState, { persist: false, recordHistory: false });
 
     return selectedIds;
   };
@@ -1213,7 +1215,7 @@ export function createEditorService(deps: EditorDependencies): IEditorService {
       ...state,
       marqueeSelection: null,
     };
-    setState(nextState, { persist: false });
+    setState(nextState, { persist: false, recordHistory: false });
   };
 
   return {

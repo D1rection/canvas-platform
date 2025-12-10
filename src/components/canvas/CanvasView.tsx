@@ -261,14 +261,16 @@ export const CanvasView: React.FC<CanvasViewProps> = ({
         onUpdateElement,
         documentRef,
         viewportRef,
-        { root: styles.root }
+        { root: styles.root },
+        selectionRef
       );
     } else {
       rotateTool.current.updateDependencies(
         onUpdateElement,
         documentRef,
         viewportRef,
-        { root: styles.root }
+        { root: styles.root },
+        selectionRef
       );
     }
 
