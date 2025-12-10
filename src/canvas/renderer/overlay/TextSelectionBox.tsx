@@ -2,8 +2,49 @@ import React from "react";
 import type { ID } from "../../schema/model";
 import { ScaleDirection } from "../../tools/ScaleTool";
 import { useSignalPointerDown } from "../../../hooks/useSignalPointerDown";
+import { createResizeCursor } from "./customCursor";
 
 const THEME_COLOR = "#5ea500";
+
+/**
+ * 将局部向量按元素 rotation 旋转到屏幕坐标系
+ */
+function rotateVector(
+  v: { x: number; y: number },
+  rotation: number | undefined
+): { x: number; y: number } {
+  const rad = ((rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return {
+    x: v.x * cos - v.y * sin,
+    y: v.x * sin + v.y * cos,
+  };
+}
+
+// 文本左右边缘：根据实际宽度缩放方向生成自定义光标
+function getEdgeCursor(rotation: number | undefined): React.CSSProperties["cursor"] {
+  // 取局部向右的单位向量，旋转后得到真实宽度方向
+  const v = rotateVector({ x: 1, y: 0 }, rotation);
+  const angle = (Math.atan2(v.y, v.x) * 180) / Math.PI;
+  return createResizeCursor(angle);
+}
+
+// 文本四角控制点：沿角平分线方向生成自定义光标
+function getCornerCursor(
+  corner: "tl" | "tr" | "bl" | "br",
+  rotation: number | undefined
+): React.CSSProperties["cursor"] {
+  const local: Record<typeof corner, { x: number; y: number }> = {
+    tl: { x: -1, y: -1 },
+    tr: { x: 1, y: -1 },
+    br: { x: 1, y: 1 },
+    bl: { x: -1, y: 1 },
+  };
+  const v = rotateVector(local[corner], rotation);
+  const angle = (Math.atan2(v.y, v.x) * 180) / Math.PI;
+  return createResizeCursor(angle);
+}
 
 interface TextSelectionBoxProps {
   left: number;
@@ -138,7 +179,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
           bottom: handleSize,
           left: -sideHitAreaWidth / 2,
           width: sideHitAreaWidth,
-          cursor: "ew-resize",
+          cursor: getEdgeCursor(rotation),
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.LEFT, e)}
       />
@@ -149,7 +190,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
           bottom: handleSize,
           right: -sideHitAreaWidth / 2,
           width: sideHitAreaWidth,
-          cursor: "ew-resize",
+          cursor: getEdgeCursor(rotation),
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.RIGHT, e)}
       />
@@ -160,7 +201,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
           ...cornerHandleStyle,
           left: handleOffset,
           top: handleOffset,
-          cursor: "nwse-resize",
+          cursor: getCornerCursor("tl", rotation),
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.TOP_LEFT, e)}
       />
@@ -169,7 +210,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
           ...cornerHandleStyle,
           right: handleOffset,
           top: handleOffset,
-          cursor: "nesw-resize",
+          cursor: getCornerCursor("tr", rotation),
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.TOP_RIGHT, e)}
       />
@@ -178,7 +219,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
           ...cornerHandleStyle,
           left: handleOffset,
           bottom: handleOffset,
-          cursor: "nesw-resize",
+          cursor: getCornerCursor("bl", rotation),
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.BOTTOM_LEFT, e)}
       />
@@ -187,7 +228,7 @@ export const TextSelectionBox: React.FC<TextSelectionBoxProps> = ({
           ...cornerHandleStyle,
           right: handleOffset,
           bottom: handleOffset,
-          cursor: "nwse-resize",
+          cursor: getCornerCursor("br", rotation),
         }}
         onPointerDown={(e) => handleScalePointerDown(ScaleDirection.BOTTOM_RIGHT, e)}
       />

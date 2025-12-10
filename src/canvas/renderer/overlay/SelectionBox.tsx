@@ -1,11 +1,65 @@
 import React from "react";
 import type { ID } from "../../../canvas/schema/model";
 import { ScaleDirection } from "../../../canvas/tools/ScaleTool";
+import { createResizeCursor } from "./customCursor";
 
 const THEME_COLOR = "#5ea500";
 const HANDLE_SIZE = 10;
 const ROTATE_HANDLE_SIZE = 14;
 const ROTATE_DISTANCE = 16;
+
+/**
+ * 将局部向量按元素 rotation 旋转到屏幕坐标系
+ */
+function rotateVector(
+  v: { x: number; y: number },
+  rotation: number | undefined
+): { x: number; y: number } {
+  const rad = ((rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return {
+    x: v.x * cos - v.y * sin,
+    y: v.x * sin + v.y * cos,
+  };
+}
+
+/**
+ * 边缘控制点光标：根据缩放方向向量，生成对应方向的自定义光标
+ */
+function getEdgeCursor(
+  edge: "top" | "right" | "bottom" | "left",
+  rotation: number | undefined
+): React.CSSProperties["cursor"] {
+  // 在局部坐标中，边的法线方向（也是缩放方向）
+  const local: Record<typeof edge, { x: number; y: number }> = {
+    top: { x: 0, y: -1 },
+    right: { x: 1, y: 0 },
+    bottom: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+  };
+  const v = rotateVector(local[edge], rotation);
+  const angle = (Math.atan2(v.y, v.x) * 180) / Math.PI;
+  return createResizeCursor(angle);
+}
+
+/**
+ * 角控制点光标：沿角平分线方向生成自定义光标
+ */
+function getCornerCursor(
+  corner: "tl" | "tr" | "bl" | "br",
+  rotation: number | undefined
+): React.CSSProperties["cursor"] {
+  const local: Record<typeof corner, { x: number; y: number }> = {
+    tl: { x: -1, y: -1 },
+    tr: { x: 1, y: -1 },
+    br: { x: 1, y: 1 },
+    bl: { x: -1, y: 1 },
+  };
+  const v = rotateVector(local[corner], rotation);
+  const angle = (Math.atan2(v.y, v.x) * 180) / Math.PI;
+  return createResizeCursor(angle);
+}
 
 interface SelectionBoxProps {
   left: number;
@@ -178,7 +232,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
           top: handleOffset,
           left: "50%",
           transform: "translateX(-50%)",
-          cursor: "n-resize",
+          cursor: getEdgeCursor("top", rotation),
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.TOP, e)}
       />
@@ -189,7 +243,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
           top: "50%",
           right: handleOffset,
           transform: "translateY(-50%)",
-          cursor: "e-resize",
+          cursor: getEdgeCursor("right", rotation),
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.RIGHT, e)}
       />
@@ -200,7 +254,7 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
           bottom: handleOffset,
           left: "50%",
           transform: "translateX(-50%)",
-          cursor: "s-resize",
+          cursor: getEdgeCursor("bottom", rotation),
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.BOTTOM, e)}
       />
@@ -211,26 +265,46 @@ export const SelectionBox: React.FC<SelectionBoxProps> = ({
           top: "50%",
           left: handleOffset,
           transform: "translateY(-50%)",
-          cursor: "w-resize",
+          cursor: getEdgeCursor("left", rotation),
         }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.LEFT, e)}
       />
 
       {/* 四角控制点 */}
       <div
-        style={{ ...handleStyle, top: handleOffset, left: handleOffset, cursor: "nwse-resize" }}
+        style={{
+          ...handleStyle,
+          top: handleOffset,
+          left: handleOffset,
+          cursor: getCornerCursor("tl", rotation),
+        }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.TOP_LEFT, e)}
       />
       <div
-        style={{ ...handleStyle, top: handleOffset, right: handleOffset, cursor: "nesw-resize" }}
+        style={{
+          ...handleStyle,
+          top: handleOffset,
+          right: handleOffset,
+          cursor: getCornerCursor("tr", rotation),
+        }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.TOP_RIGHT, e)}
       />
       <div
-        style={{ ...handleStyle, bottom: handleOffset, left: handleOffset, cursor: "nesw-resize" }}
+        style={{
+          ...handleStyle,
+          bottom: handleOffset,
+          left: handleOffset,
+          cursor: getCornerCursor("bl", rotation),
+        }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.BOTTOM_LEFT, e)}
       />
       <div
-        style={{ ...handleStyle, bottom: handleOffset, right: handleOffset, cursor: "nwse-resize" }}
+        style={{
+          ...handleStyle,
+          bottom: handleOffset,
+          right: handleOffset,
+          cursor: getCornerCursor("br", rotation),
+        }}
         onPointerDown={(e) => handleScaleHandlePointerDown(ScaleDirection.BOTTOM_RIGHT, e)}
       />
     </div>
