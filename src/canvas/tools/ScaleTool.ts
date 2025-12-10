@@ -186,6 +186,28 @@ export class ScaleTool {
     style.width = `${screenW}px`;
     style.height = `${screenH}px`;
 
+    // 如果根节点是 SVG（例如三角形形状），仅修改外层宽高会导致内部路径不随之缩放，
+    // 这里同步更新 svg 的尺寸以及三角形的 polygon 顶点，保证 DOM 预览的几何和最终状态一致。
+    const tagName = (el as any).tagName?.toLowerCase?.();
+    if (tagName === "svg") {
+      const svg = el as unknown as SVGSVGElement;
+      try {
+        svg.setAttribute("width", `${screenW}`);
+        svg.setAttribute("height", `${screenH}`);
+      } catch {
+        // 忽略属性设置失败
+      }
+      const polygon = svg.querySelector("polygon");
+      if (polygon) {
+        const p = `${screenW / 2},0 ${screenW},${screenH} 0,${screenH}`;
+        try {
+          polygon.setAttribute("points", p);
+        } catch {
+          // 忽略 polygon 更新失败
+        }
+      }
+    }
+
     // 同步更新对应的单选 / 文本选框（如果存在）
     const selectorSuffix = `[data-element-id="${id}"]`;
     const singleBox = document.querySelector<HTMLElement>(
