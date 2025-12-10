@@ -1,6 +1,5 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { type ViewportState, type TextElement as TextElementModel } from "../../schema/model";
-import { ensureFontFamilySupport } from "../../../components/ElementToolbar/TextEditor/utils/textFormatUtils";
 
 interface TextElementProps {
   element: TextElementModel;
@@ -81,25 +80,38 @@ export const TextElement: React.FC<TextElementProps> = ({
           transformOrigin: "center",
         }}
       >
-        {spans.map((span, index) => (
-          <span
-            key={index}
-            style={{
-              fontFamily: ensureFontFamilySupport(span.style.fontFamily, {
-                bold: span.style.bold,
-                italic: span.style.italic,
-              }),
-              fontSize: span.style.fontSize * scale,
-              color: span.style.color,
-              background: span.style.background,
-              fontWeight: span.style.bold ? "bold" : "normal",
-              fontStyle: span.style.italic ? "italic" : "normal",
-              textDecoration: span.style.decorations?.join(" "),
-            }}
-          >
-            {span.text}
-          </span>
-        ))}
+        {spans.map((span, index) => {
+          
+          // 创建基础样式
+          const baseStyle: React.CSSProperties = {
+            fontFamily: span.style.fontFamily,
+            fontSize: span.style.fontSize * scale,
+            color: span.style.color,
+            background: span.style.background,
+            fontWeight: span.style.bold ? "bold" : "normal",
+            textDecoration: span.style.decorations?.join(" "),
+          };
+
+          // 如果是斜体，添加斜体增强样式
+          const italicStyle: React.CSSProperties = span.style.italic ? {
+            fontStyle: "italic",
+            display: "inline-block",
+            transform: "skewX(-10deg)",
+            transformOrigin: "center",
+          } : {};
+
+          return (
+            <span
+              key={index}
+              style={{
+                ...baseStyle,
+                ...italicStyle,
+              }}
+            >
+              {span.text}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
