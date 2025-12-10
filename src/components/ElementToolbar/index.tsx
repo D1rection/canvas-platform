@@ -92,7 +92,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       onUpdateElement(el.id, updates);
     });
   };
-  // 计算元素在屏幕坐标的包围框（考虑 viewport 平移与缩放）
+  // 计算元素在屏幕坐标的包围框（考虑 viewport 平移、缩放以及元素自身的旋转）
   const getElementBounds = (element: CanvasElement) => {
     if (!element.transform) {
       return { x: 0, y: 0, width: 100, height: 100 };
@@ -104,25 +104,20 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const viewportY = viewport.y || 0;
 
     // 元素的原始坐标和变换
-    const elementX = element.transform.x;
-    const elementY = element.transform.y;
-    // 获取元素的缩放比例，如果没有设置则默认为1
-    const elementScaleX = element.transform.scaleX || 1;
-    const elementScaleY = element.transform.scaleY || 1;
-    let width = 100; // 默认宽度
-    let height = 100; // 默认高度
+    const { x: elementX, y: elementY } = element.transform;
+    const elementScaleX = element.transform.scaleX ?? 1;
+    const elementScaleY = element.transform.scaleY ?? 1;
+    const rotation = element.transform.rotation || 0;
 
-    // 根据元素类型获取尺寸信息
-    if (element.type === "image" && "size" in element) {
-      // 处理图片元素的尺寸
+    let width = 100; // 元素本地坐标系中的宽度（未应用缩放）
+    let height = 100; // 元素本地坐标系中的高度（未应用缩放）
+
+    // 根据元素类型获取尺寸信息（与 SelectionOverlay/SelectionBox 保持一致）
+    if ("size" in element && element.size) {
       width = Number(element.size.width) || 100;
       height = Number(element.size.height) || 100;
     } else if ("shape" in element && element.shape) {
-      // 处理形状元素的尺寸
-      if ("size" in element && element.size) {
-        width = Number(element.size.width) || 100;
-        height = Number(element.size.height) || 100;
-      } else if ("width" in element) {
+      if ("width" in element) {
         width = Number(element.width) || 100;
       } else if ("radius" in element) {
         width = height = (Number(element.radius) || 50) * 2;
@@ -132,17 +127,66 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
       }
     }
 
-    // 应用元素自身的缩放比例
-    width *= elementScaleX;
-    height *= elementScaleY;
+    // 计算旋转、缩放后的四个世界坐标顶点
+    const scaledWidth = width * elementScaleX;
+    const scaledHeight = height * elementScaleY;
 
-    // 将坐标转换为屏幕坐标系（考虑视口平移与缩放）
-    const screenX = (elementX - viewportX) * viewportScale;
-    const screenY = (elementY - viewportY) * viewportScale;
-    const screenWidth = width * viewportScale;
-    const screenHeight = height * viewportScale;
+    const centerX = scaledWidth / 2;
+    const centerY = scaledHeight / 2;
 
-    // 返回在屏幕坐标系中的元素边界
+    const rad = (rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const localCorners = [
+      { x: 0, y: 0 },
+      { x: width, y: 0 },
+      { x: width, y: height },
+      { x: 0, y: height },
+    ];
+
+    let worldMinX = Infinity;
+    let worldMinY = Infinity;
+    let worldMaxX = -Infinity;
+    let worldMaxY = -Infinity;
+
+    for (const corner of localCorners) {
+      // 应用缩放
+      const cx = corner.x * elementScaleX;
+      const cy = corner.y * elementScaleY;
+
+      // 以中心为原点进行旋转
+      const relativeX = cx - centerX;
+      const relativeY = cy - centerY;
+
+      const rotatedX = relativeX * cos - relativeY * sin;
+      const rotatedY = relativeX * sin + relativeY * cos;
+
+      // 平移回世界坐标（transform.x/y 表示左上角）
+      const worldX = elementX + centerX + rotatedX;
+      const worldY = elementY + centerY + rotatedY;
+
+      worldMinX = Math.min(worldMinX, worldX);
+      worldMinY = Math.min(worldMinY, worldY);
+      worldMaxX = Math.max(worldMaxX, worldX);
+      worldMaxY = Math.max(worldMaxY, worldY);
+    }
+
+    if (
+      !isFinite(worldMinX) ||
+      !isFinite(worldMinY) ||
+      !isFinite(worldMaxX) ||
+      !isFinite(worldMaxY)
+    ) {
+      return { x: 0, y: 0, width: 100, height: 100 };
+    }
+
+    // 将世界坐标系下的包围盒转换为屏幕坐标系
+    const screenX = (worldMinX - viewportX) * viewportScale;
+    const screenY = (worldMinY - viewportY) * viewportScale;
+    const screenWidth = (worldMaxX - worldMinX) * viewportScale;
+    const screenHeight = (worldMaxY - worldMinY) * viewportScale;
+
     return {
       x: screenX,
       y: screenY,
@@ -162,7 +206,7 @@ const ElementToolbarImpl: React.FC<ElementToolbarProps> = ({
     const toolbarWidth = Math.max(1, Math.floor(tw)); // 实际宽度（首次为估算值）
     const toolbarHeight = Math.max(1, Math.floor(th)); // 实际高度（首次为估算值）
     const margin = 10; // 与浏览器窗口边缘的安全边距
-    const elementGap = 40; // 与所选元素包围框之间的最小间距
+    const elementGap = 50; // 与所选元素包围框之间的最小间距
     const avoidPadding = 10; // 额外避让（例如选框/控制点、阴影等）
     const containerWidth =
       typeof window !== "undefined" ? window.innerWidth : 1000;
